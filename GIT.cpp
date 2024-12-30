@@ -444,6 +444,40 @@ void GIT::deleteBranch(const std::string& branch_name)
 	git_reference_free(branch_ref);
 }
 
+std::vector<std::string> GIT::getBranchList(git_branch_t branch_type_enum)
+{
+	std::vector<std::string> branch_list;
+
+	git_branch_iterator* iter = nullptr;
+	git_reference* branch_ref = nullptr;
+	git_branch_t branch_type;
+	if (git_branch_iterator_new(&iter, repo, branch_type_enum) < 0)
+		getLastError("git_branch_iterator_new failed: ");
+	while (git_branch_next(&branch_ref, &branch_type, iter) != GIT_ITEROVER)
+	{
+		const char* branch_name = nullptr;
+		if (git_branch_name(&branch_name, branch_ref) < 0)
+			getLastError("git_branch_name failed: ");
+		branch_list.emplace_back(branch_name);
+
+		git_reference_free(branch_ref);
+	}
+	git_branch_iterator_free(iter);
+
+	return branch_list;
+}
+std::vector<std::string> GIT::getLocalBranchList()
+{
+	return getBranchList(GIT_BRANCH_LOCAL);
+}
+std::vector<std::string> GIT::getRemoteBranchList()
+{
+	return getBranchList(GIT_BRANCH_REMOTE);
+}
+std::vector<std::string> GIT::getAllBranchList()
+{
+	return getBranchList(GIT_BRANCH_ALL);
+}
 
 GIT::~GIT()
 {

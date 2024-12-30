@@ -85,6 +85,11 @@ public:
 	void mergeBranch(const std::string& source_branch);
 	void deleteBranch(const std::string& branch_name);
 
+	std::vector<std::string> getBranchList(git_branch_t branch_type_enum);
+	std::vector<std::string> getLocalBranchList();
+	std::vector<std::string> getRemoteBranchList();
+	std::vector<std::string> getAllBranchList();
+
 
 	~GIT();
 
