@@ -1,5 +1,7 @@
 #include "GIT.h"
 
+#include <filesystem>
+
 #include <iostream>
 
 
@@ -21,6 +23,15 @@ void GIT::getLastError(std::string info)
 }
 void GIT::clearGitIgnore()
 {
+	std::string gitIgnorePath = repoPath + "/.gitignore";
+	std::ifstream gitIgnoreFileTrunc(gitIgnorePath, std::ios::trunc);
+	if (gitIgnoreFileTrunc.is_open())
+	{
+		std::cout << "git ignore file successfully clear" << std::endl;
+		gitIgnoreFileTrunc.close();
+	}
+	else
+		std::cout << "git ignore file clear failed" << std::endl;
 
 }
 void GIT::appendGitIgnore(const std::vector<std::string>& ignorePatterns)
@@ -283,6 +294,13 @@ void GIT::commitCurrentStage(std::string commit_message)
 GIT::GIT(std::string repoPath, std::string userName, std::string userEmail)
 	: repoPath(repoPath), userName(userName), userEmail(userEmail)
 {
+
+	if (!std::filesystem::is_directory(repoPath))
+	{
+		std::cout << "Repo Path directory is not exist" << std::endl;
+		if (std::filesystem::create_directory(repoPath))
+			std::cout << "Create dir: " << repoPath << std::endl;		
+	}
 
 	git_libgit2_init();
 	auto t0 = std::chrono::system_clock::now();

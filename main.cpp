@@ -12,7 +12,7 @@ int main()
     auto git = new GIT("./repo");
     git->stagingAll();
     std::cout << "Current status\n" << git->getCurrentStatus() << std::endl;
-    //std::cout << "Current branch: " << git->getCurrentBranch() << std::endl;
+    std::cout << "Current branch: " << git->getCurrentBranch() << std::endl;
 
 
 }
