@@ -22,11 +22,28 @@ private:
 	std::string userName = "";
 	std::string userEmail = "";
 
+	struct NotStaged
+	{
+		std::vector<std::string> newFiles;
+		std::vector<std::string> modifiedFiles;
+		std::vector<std::string> deletedFiles;
+		std::vector<std::string> renamedFiles;
+		std::vector<std::string> typechangedFiles;
+		std::vector<std::string> unreadableFiles;
+	};
+	struct Staged
+	{
+		std::vector<std::string> newFiles;
+		std::vector<std::string> modifiedFiles;
+		std::vector<std::string> deletedFiles;
+		std::vector<std::string> renamedFiles;
+		std::vector<std::string> typechangedFiles;
+	};
 	struct FileStatus
 	{
-		std::vector<std::string> untracked;
-		std::vector<std::string> modified;
-		std::vector<std::string> deleted;
+		NotStaged notStaged;
+		Staged staged;
+		
 	};
 
 	void printErrorAndShutdown(std::string text);
@@ -53,8 +70,14 @@ public:
 	void stagingAllUntrackedFiles();
 	void stagingAllModifiedFiles();
 	void stagingAllDeletedFiles();
+	void stagingAllRenamedFiles();
+	void stagingAllTypechangedFiles();
 	
 	void commitCurrentStage(std::string commit_message);
+
+	std::string getCurrentBranch();
+
+	std::string getCurrentStatus();
 
 	~GIT();
 

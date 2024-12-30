@@ -70,25 +70,66 @@ GIT::FileStatus GIT::collectRepoStatus()
 		getLastError("git_status_list_new failed: ");
 
 	size_t statusCount = git_status_list_entrycount(statusList);
-	std::cout << "git_status_list_entrycount: " + std::to_string(statusCount) << std::endl;
+	//std::cout << "git_status_list_entrycount: " + std::to_string(statusCount) << std::endl;
 	for (size_t i = 0; i < statusCount; i++)
 	{
-		const git_status_entry* entry = git_status_byindex(statusList, i);
+		const git_status_entry* entry = git_status_byindex(statusList, i);		
 		if (entry->status & GIT_STATUS_WT_NEW)
 		{
-			if (entry->index_to_workdir)
-				fileStatus.untracked.push_back(entry->index_to_workdir->new_file.path);
+			fileStatus.notStaged.newFiles.push_back(entry->index_to_workdir->new_file.path);
+			continue;
 		}
-		else if (entry->status & GIT_STATUS_WT_MODIFIED)
+		if (entry->status & GIT_STATUS_WT_MODIFIED)
 		{
-			if (entry->head_to_index)
-				fileStatus.modified.push_back(entry->head_to_index->new_file.path);
+			fileStatus.notStaged.modifiedFiles.push_back(entry->index_to_workdir->new_file.path);
+			continue;
 		}
-		else if (entry->status & GIT_STATUS_WT_DELETED)
+		if (entry->status & GIT_STATUS_WT_DELETED)
 		{
-			if (entry->head_to_index)
-				fileStatus.deleted.push_back(entry->head_to_index->old_file.path);
+			fileStatus.notStaged.deletedFiles.push_back(entry->index_to_workdir->new_file.path);
+			continue;
 		}
+		if (entry->status & GIT_STATUS_WT_TYPECHANGE)
+		{
+			fileStatus.notStaged.typechangedFiles.push_back(entry->index_to_workdir->new_file.path);
+			continue;
+		}
+		if (entry->status & GIT_STATUS_WT_RENAMED)
+		{
+			fileStatus.notStaged.renamedFiles.push_back(entry->index_to_workdir->new_file.path);
+			continue;
+		}
+		if (entry->status & GIT_STATUS_WT_UNREADABLE)
+		{
+			fileStatus.notStaged.unreadableFiles.push_back(entry->index_to_workdir->new_file.path);
+			continue;
+		}
+		if (entry->status & GIT_STATUS_INDEX_NEW)
+		{
+			fileStatus.staged.newFiles.push_back(entry->head_to_index->new_file.path);
+			continue;
+		}
+		if (entry->status & GIT_STATUS_INDEX_MODIFIED)
+		{
+			fileStatus.staged.modifiedFiles.push_back(entry->head_to_index->new_file.path);
+			continue;
+		}
+		if (entry->status & GIT_STATUS_INDEX_DELETED)
+		{
+			fileStatus.staged.deletedFiles.push_back(entry->head_to_index->new_file.path);
+			continue;
+		}
+		if (entry->status & GIT_STATUS_INDEX_RENAMED)
+		{
+			fileStatus.staged.renamedFiles.push_back(entry->head_to_index->new_file.path);
+			continue;
+		}
+		if (entry->status & GIT_STATUS_INDEX_TYPECHANGE)
+		{
+			fileStatus.staged.typechangedFiles.push_back(entry->head_to_index->new_file.path);
+			continue;
+		}
+
 	}
 
 	git_status_list_free(statusList);
@@ -100,12 +141,30 @@ GIT::FileStatus GIT::collectRepoStatus()
 std::string GIT::printRepoStatus(const GIT::FileStatus& fileStatus)
 {
 	std::ostringstream oss;
-	for (const auto& file : fileStatus.untracked)
-		oss << "Untracked files:\t" << file << "\n";
-	for (const auto& file : fileStatus.modified)
-		oss << "Modified files:\t" << file << "\n";
-	for (const auto& file : fileStatus.deleted)
-		oss << "Deleted files:\t" << file << "\n";
+	oss << "\nNot Staged:\n";
+	for (const auto& file : fileStatus.notStaged.newFiles)
+		oss << "\tUntracked files:\t" << file << "\n";
+	for (const auto& file : fileStatus.notStaged.modifiedFiles)
+		oss << "\tModified files:\t" << file << "\n";
+	for (const auto& file : fileStatus.notStaged.deletedFiles)
+		oss << "\tDeleted files:\t" << file << "\n";
+	for (const auto& file : fileStatus.notStaged.renamedFiles)
+		oss << "\tRenamed files:\t" << file << "\n";
+	for (const auto& file : fileStatus.notStaged.typechangedFiles)
+		oss << "\tTypechanged files:\t" << file << "\n";
+	for (const auto& file : fileStatus.notStaged.unreadableFiles)
+		oss << "\tUnreadable files:\t" << file << "\n";
+	oss << "\nStaged:\n";
+	for (const auto& file : fileStatus.staged.newFiles)
+		oss << "\New files:\t" << file << "\n";
+	for (const auto& file : fileStatus.staged.modifiedFiles)
+		oss << "\tModified files:\t" << file << "\n";
+	for (const auto& file : fileStatus.staged.deletedFiles)
+		oss << "\tDeleted files:\t" << file << "\n";
+	for (const auto& file : fileStatus.staged.renamedFiles)
+		oss << "\tRenamed files:\t" << file << "\n";
+	for (const auto& file : fileStatus.staged.typechangedFiles)
+		oss << "\tTypechanged files:\t" << file << "\n";
 
 	return oss.str();
 }
@@ -137,24 +196,40 @@ void GIT::stagingFiles(std::vector<std::string> filesPath)
 void GIT::stagingAllUntrackedFiles()
 {
 	auto fileStatus = collectRepoStatus();
-	stagingFiles(fileStatus.untracked);
+	stagingFiles(fileStatus.notStaged.newFiles);
 }
 void GIT::stagingAllModifiedFiles()
 {
 	auto fileStatus = collectRepoStatus();
-	stagingFiles(fileStatus.modified);
+	stagingFiles(fileStatus.notStaged.modifiedFiles);
 }
 void GIT::stagingAllDeletedFiles()
 {
 	auto fileStatus = collectRepoStatus();
-	stagingFiles(fileStatus.deleted);
+	stagingFiles(fileStatus.notStaged.deletedFiles);
 }
+void GIT::stagingAllRenamedFiles()
+{
+	auto fileStatus = collectRepoStatus();
+	stagingFiles(fileStatus.notStaged.renamedFiles);
+}
+void GIT::stagingAllTypechangedFiles()
+{
+	auto fileStatus = collectRepoStatus();
+	stagingFiles(fileStatus.notStaged.typechangedFiles);
+}
+// except unreadable files
+
 void GIT::stagingAll()
 {
 	auto fileStatus = collectRepoStatus();
-	stagingFiles(fileStatus.untracked);
-	stagingFiles(fileStatus.modified);
-	stagingFiles(fileStatus.deleted);
+	std::vector<std::string> notStagedFiles;
+	notStagedFiles.insert(notStagedFiles.end(), fileStatus.notStaged.newFiles.begin(), fileStatus.notStaged.newFiles.end());
+	notStagedFiles.insert(notStagedFiles.end(), fileStatus.notStaged.modifiedFiles.begin(), fileStatus.notStaged.modifiedFiles.end());
+	notStagedFiles.insert(notStagedFiles.end(), fileStatus.notStaged.deletedFiles.begin(), fileStatus.notStaged.deletedFiles.end());
+	notStagedFiles.insert(notStagedFiles.end(), fileStatus.notStaged.renamedFiles.begin(), fileStatus.notStaged.renamedFiles.end());
+	notStagedFiles.insert(notStagedFiles.end(), fileStatus.notStaged.typechangedFiles.begin(), fileStatus.notStaged.typechangedFiles.end());
+	stagingFiles(notStagedFiles);
 }
 
 void GIT::commitCurrentStage(std::string commit_message)
@@ -246,6 +321,42 @@ bool GIT::isRepoExist(std::string repoPath)
 
 	git_libgit2_shutdown();
 	return ret;
+}
+
+std::string GIT::getCurrentBranch()
+{
+	git_reference* head_ref = nullptr;
+	int ret = git_repository_head(&head_ref, repo);	
+	switch (ret)
+	{
+	case GIT_EUNBORNBRANCH:
+		return "";
+		break;
+	case GIT_ENOTFOUND:
+		return "";
+		break;
+	case GIT_OK:
+		
+		break;
+	default:
+		getLastError("git_repository_head failed: ");
+		break;
+	}
+
+	// only GIT_OK case escape from switch
+	const char* branch_name = nullptr;
+	if (git_branch_name(&branch_name, head_ref) < 0)
+		getLastError("git_branch_name failed: ");
+
+	git_reference_free(head_ref);
+	return std::string(branch_name);
+
+}
+
+std::string GIT::getCurrentStatus()
+{
+	auto fileStatus = collectRepoStatus();
+	return printRepoStatus(fileStatus);
 }
 
 GIT::~GIT()
