@@ -79,6 +79,13 @@ public:
 
 	std::string getCurrentStatus();
 
+
+	void createBranch(const std::string& branch_name);
+	void switchBranch(const std::string& branch_name);
+	void mergeBranch(const std::string& source_branch);
+	void deleteBranch(const std::string& branch_name);
+
+
 	~GIT();
 
 

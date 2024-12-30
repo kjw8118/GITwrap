@@ -348,9 +348,11 @@ std::string GIT::getCurrentBranch()
 	switch (ret)
 	{
 	case GIT_EUNBORNBRANCH:
+		std::cout << "No commits yet (unborn branch)" << std::endl;
 		return "";
 		break;
 	case GIT_ENOTFOUND:
+		std::cout << "No branch found (detached HEAD or empty repository)" << std::endl;
 		return "";
 		break;
 	case GIT_OK:
@@ -376,6 +378,72 @@ std::string GIT::getCurrentStatus()
 	auto fileStatus = collectRepoStatus();
 	return printRepoStatus(fileStatus);
 }
+
+void GIT::createBranch(const std::string& branch_name)
+{
+	git_reference* new_branch = nullptr;
+	git_object* head_commit = nullptr;
+	if (git_revparse_single(&head_commit, repo, "HEAD") < 0)
+		getLastError("git_revparse_single failed: ");
+	if (git_branch_create(&new_branch, repo, branch_name.c_str(), (git_commit*)head_commit, 0) < 0)
+		getLastError("git_branch_create failed: ");
+
+	git_object_free(head_commit);
+	git_reference_free(new_branch);
+
+}
+void GIT::switchBranch(const std::string& branch_name)
+{
+	git_checkout_options opts = GIT_CHECKOUT_OPTIONS_INIT;
+	opts.checkout_strategy = GIT_CHECKOUT_SAFE;
+
+	git_reference* branch_ref = nullptr;
+	if (git_branch_lookup(&branch_ref, repo, branch_name.c_str(), GIT_BRANCH_LOCAL) < 0)
+		getLastError("git_branch_lookup failed: ");
+
+	if (git_repository_set_head(repo, git_reference_name(branch_ref)) < 0)
+		getLastError("git_repository_set_head failed: ");
+
+	if (git_checkout_head(repo, &opts) < 0)
+		getLastError("git_checkout_head failed: ");
+
+	git_reference_free(branch_ref);
+}
+void GIT::mergeBranch(const std::string& source_branch)
+{
+	git_reference* target_ref = nullptr;
+	git_reference* source_ref = nullptr;
+	git_annotated_commit* source_annotated = nullptr;
+
+	if (git_repository_head(&target_ref, repo) < 0)
+		getLastError("git_repository_head failed: ");
+
+	if (git_branch_lookup(&source_ref, repo, source_branch.c_str(), GIT_BRANCH_LOCAL) < 0)
+		getLastError("git_branch_lookup failed: ");
+
+	if(git_annotated_commit_from_ref(&source_annotated, repo, source_ref) < 0)
+		getLastError("git_annotated_commit_from_ref failed: ");
+
+	if(git_merge(repo, (const git_annotated_commit**)&source_annotated, 1, nullptr, nullptr) < 0)
+		getLastError("git_merge failed: ");
+	
+	git_reference_free(target_ref);
+	git_reference_free(source_ref);
+	git_annotated_commit_free(source_annotated);
+}
+void GIT::deleteBranch(const std::string& branch_name)
+{
+	git_reference* branch_ref = nullptr;
+
+	if(git_branch_lookup(&branch_ref, repo, branch_name.c_str(), GIT_BRANCH_LOCAL) < 0)
+		getLastError("git_branch_lookup failed: ");
+
+	if(git_branch_delete(branch_ref) < 0)
+		getLastError("git_branch_delete failed: ");
+	
+	git_reference_free(branch_ref);
+}
+
 
 GIT::~GIT()
 {
