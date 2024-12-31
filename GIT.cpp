@@ -479,6 +479,178 @@ std::vector<std::string> GIT::getAllBranchList()
 	return getBranchList(GIT_BRANCH_ALL);
 }
 
+
+
+
+git_diff_file_cb GIT::git_diff_file_callback = [](const git_diff_delta* delta, float progress, void* payload)->int
+{
+	auto diffResults = (std::vector<GIT::DiffResult>*)payload;
+	GIT::DiffResult diffResult;
+	diffResult.filePath = std::string(delta->new_file.path);
+	diffResults->push_back(diffResult);
+
+	//std::cout << "git_diff_file_callback " + std::string(delta->new_file.path) << std::endl;
+	return 0;
+};
+
+git_diff_hunk_cb GIT::git_diff_hunk_callback = [](const git_diff_delta* delta, const git_diff_hunk* hunk, void* payload)->int
+{
+	auto diffResults = (std::vector<GIT::DiffResult>*)payload;
+	if (diffResults->empty())
+	{
+		//std::cout << "git_diff_hunk_callback diffResults->empty()" << std::endl;
+		return -1;
+	}
+
+	GIT::DiffResult* diffResult = &diffResults->back();
+	if (diffResult->filePath != std::string(delta->new_file.path))
+	{
+		//std::cout << "git_diff_hunk_callback diffResult->filePath != std::string(delta->new_file.path)" << std::endl;
+		return -1;
+	}
+
+	DiffHunk diffHunk;
+	diffHunk.hunk = *hunk;
+	diffResult->diffHunks.push_back(diffHunk);
+	diffResult->current_new_line_index = hunk->new_start;
+	diffResult->current_old_line_index = hunk->old_start;
+
+	//std::cout << "git_diff_hunk_callback @@ -" << hunk->old_start << "," << hunk->old_lines << " +" << hunk->new_start << "," << hunk->new_lines << " @@" << std::endl;
+	return 0;
+};
+
+git_diff_line_cb GIT::git_diff_line_callback = [](const git_diff_delta* delta, const git_diff_hunk* hunk, const git_diff_line* line, void* payload)->int
+{
+	auto diffResults = (std::vector<GIT::DiffResult>*)payload;
+	if (diffResults->empty())
+	{
+		//std::cout << "git_diff_line_callback diffResults->empty()" << std::endl;
+		return -1;
+	}
+
+	GIT::DiffResult* diffResult = &diffResults->back();
+	if (diffResult->filePath != std::string(delta->new_file.path))
+	{
+		//std::cout << "git_diff_line_callback diffResult->filePath != std::string(delta->new_file.path)" << std::endl;
+		return -1;
+	}
+
+	if (diffResult->diffHunks.empty())
+	{
+		//std::cout << "git_diff_line_callback diffResult->diffHunks.empty()" << std::endl;
+		return -1;
+	}
+
+	DiffHunk* diffHunk = &diffResult->diffHunks.back();
+	if ((diffHunk->hunk.new_start > diffResult->current_new_line_index) || ((diffHunk->hunk.new_start + diffHunk->hunk.new_lines) < diffResult->current_new_line_index)) // exactly start + lines - 1 < index
+	{
+		//std::cout << "git_diff_line_callback " << diffHunk->hunk.new_start << ", " << diffResult->current_new_line_index << ", " << diffHunk->hunk.new_start + diffHunk->hunk.new_lines - 1 << " (diffHunk->hunk.new_start > diffResult->current_new_line_index) || ((diffHunk->hunk.new_start + diffHunk->hunk.new_lines - 1) < diffResult->current_new_line_index)" << std::endl;
+		return -1;
+	}
+	if ((diffHunk->hunk.old_start > diffResult->current_old_line_index) || ((diffHunk->hunk.old_start + diffHunk->hunk.old_lines) < diffResult->current_old_line_index)) // exactly start + lines - 1 < index
+	{
+		//std::cout << "git_diff_line_callback " << diffHunk->hunk.old_start << ", " << diffResult->current_old_line_index << ", " << diffHunk->hunk.old_start + diffHunk->hunk.old_lines - 1 << " (diffHunk->hunk.old_start > diffResult->current_old_line_index) || ((diffHunk->hunk.old_start + diffHunk->hunk.old_lines - 1) < diffResult->current_old_line_index)" << std::endl;
+		return -1;
+	}
+
+
+
+	switch (line->origin)
+	{
+	case GIT_DIFF_LINE_ADDITION:
+		diffHunk->diffLines.emplace_back(DiffLine::AddedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
+		diffHunk->rawLines.push_back("+" + std::string(line->content, line->content_len));
+		diffResult->current_new_line_index++;
+		break;
+	case GIT_DIFF_LINE_DELETION:
+		diffHunk->diffLines.emplace_back(DiffLine::DeletedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
+		diffHunk->rawLines.push_back("-" + std::string(line->content, line->content_len));
+		diffResult->current_old_line_index++;
+		break;
+	case GIT_DIFF_LINE_CONTEXT:
+		diffHunk->diffLines.emplace_back(DiffLine::ContextLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
+		diffHunk->rawLines.push_back(" " + std::string(line->content, line->content_len));
+		diffResult->current_new_line_index++;
+		diffResult->current_old_line_index++;
+		break;
+	default:
+		break;
+	}
+	//std::cout << "git_diff_line_callback " << diffHunk->rawLines.back();
+	return 0;
+};
+
+void GIT::printDiffResults(std::vector<GIT::DiffResult>& diffResults)
+{
+	for (auto diffResult : diffResults)
+	{
+		std::cout << "\nFile: " << diffResult.filePath << std::endl;
+		for (auto diffHunk : diffResult.diffHunks)
+		{
+			for (auto diffLine : diffHunk.diffLines)
+			{
+				switch (diffLine.type)
+				{
+				case DiffLine::LINETYPE::ADDED:
+					std::cout << "+" + diffLine.line;
+					break;
+				case DiffLine::LINETYPE::DELETED:
+					std::cout << "-" + diffLine.line;
+					break;
+				case DiffLine::LINETYPE::CONTEXT:
+					std::cout << " " + diffLine.line;
+					break;
+				}
+			}
+		}
+
+	}
+}
+std::vector<GIT::DiffResult> GIT::compare_workdir_to_index() // git diff
+{
+
+	git_diff* diff = nullptr;
+	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
+	opts.context_lines = 2;
+	if (git_diff_index_to_workdir(&diff, repo, nullptr, &opts) < 0)
+		getLastError("git_diff_index_to_workdir failed: ");
+
+	std::vector<GIT::DiffResult> diffResults;
+	if (git_diff_foreach(diff, git_diff_file_callback, nullptr, git_diff_hunk_callback, git_diff_line_callback, &diffResults) < 0)
+		getLastError("git_diff_foreach failed: ");
+
+	git_diff_free(diff);
+
+	return diffResults;
+}
+
+std::vector<GIT::DiffResult> GIT::compare_head_to_workdir() // git diff HEAD
+{
+	git_object* head_tree_obj = nullptr;
+	if (git_revparse_single(&head_tree_obj, repo, "HEAD^{tree}") < 0)
+		getLastError("git_revparse_single failed: ");
+
+	git_tree* head_tree = (git_tree*)head_tree_obj;
+
+	git_diff* diff = nullptr;
+	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
+	opts.context_lines = 2;
+	if (git_diff_tree_to_workdir_with_index(&diff, repo, head_tree, &opts) < 0)
+		getLastError("git_diff_tree_to_workdir_with_index failed: ");
+
+	std::vector<GIT::DiffResult> diffResults;
+	if (git_diff_foreach(diff, git_diff_file_callback, nullptr, git_diff_hunk_callback, git_diff_line_callback, &diffResults) < 0)
+		getLastError("git_diff_foreach failed: ");
+
+	git_diff_free(diff);
+	git_tree_free(head_tree);
+
+	return diffResults;
+}
+
+
+
+
 GIT::~GIT()
 {
 	git_repository_free(repo);
