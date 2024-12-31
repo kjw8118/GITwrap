@@ -101,9 +101,27 @@ private:
 	static git_diff_hunk_cb git_diff_hunk_callback;
 	static git_diff_line_cb git_diff_line_callback;
 
-	void printDiffResults(std::vector<DiffResult>& diffResults);
-	std::vector<DiffResult> gitDiff(); // git diff	
-	std::vector<DiffResult> gitDiffHead(); // git diff HEAD
+	
+	struct Author
+	{
+		std::string name;
+		std::string email;
+		git_time when;
+		Author(std::string name, std::string email, git_time when)
+			: name(name), email(email), when(when) {};
+	};
+	struct Commit
+	{
+
+		const git_oid oid;
+		const std::string oid_str;
+		const Author author;
+		const std::string message;
+
+		Commit(git_oid oid, std::string oid_str, Author author, std::string message)
+			: oid(oid), oid_str(oid_str), author(author), message(message) {};
+
+	};
 	
 	
 public:
@@ -120,13 +138,11 @@ public:
 	void stagingAllDeletedFiles();
 	void stagingAllRenamedFiles();
 	void stagingAllTypechangedFiles();
-	
-	void compare() {
-		std::cout << "\n\ncompare_workdir_to_index" << std::endl;
-		gitDiff();
-		std::cout << "\n\ncompare_head_to_workdir" << std::endl;
-		gitDiffHead(); 
-	};
+		
+	void printDiffResults(std::vector<DiffResult>& diffResults);
+	std::vector<DiffResult> gitDiff(); // git diff	
+	std::vector<DiffResult> gitDiffHead(); // git diff HEAD
+	std::vector<Commit> gitLog();
 
 	void commitCurrentStage(std::string commit_message);
 

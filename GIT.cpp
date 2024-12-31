@@ -646,7 +646,40 @@ std::vector<GIT::DiffResult> GIT::gitDiffHead() // git diff HEAD
 	return diffResults;
 }
 
+std::vector<GIT::Commit> GIT::gitLog()
+{
+	git_revwalk* walker = nullptr;
+	if (git_revwalk_new(&walker, repo) < GIT_OK)
+		getLastError("Failed to git_revwalk_new: ");
+	if (git_revwalk_sorting(walker, GIT_SORT_TIME | GIT_SORT_REVERSE) < GIT_OK)
+		getLastError("Failed to git_revwalk_sorting: ");
+	if (git_revwalk_push_head(walker) < GIT_OK)
+		getLastError("Failed to git_revwalk_push_head: ");
+	std::vector<GIT::Commit> commits;
+	git_oid oid;
+	while (git_revwalk_next(&oid, walker) == GIT_OK)
+	{
+		git_commit* commit = nullptr;
+		if (git_commit_lookup(&commit, repo, &oid) < GIT_OK)
+			getLastError("Failed to git_commit_lookup: ");
 
+		const char* message = git_commit_message(commit);
+		const git_signature* author = git_commit_author(commit);
+		char oid_str[GIT_OID_HEXSZ + 1];
+		git_oid_tostr(oid_str, sizeof(oid_str), &oid);
+
+		// store to commit history		
+		commits.emplace_back(oid, std::string(oid_str), Author(author->name, author->email, author->when), std::string(message));
+
+		git_commit_free(commit);
+
+	}
+
+	git_revwalk_free(walker);
+
+	return commits;
+
+}
 
 
 GIT::~GIT()

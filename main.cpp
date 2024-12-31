@@ -14,7 +14,8 @@ int main()
     std::cout << "Current status\n" << git->getCurrentStatus() << std::endl;
     //git->commitCurrentStage("new");
     //std::cout << "Current branch: " << git->getCurrentBranch() << std::endl;
-    git->compare();
+    //git->compare();
+    git->gitLog();
     
 
 }
