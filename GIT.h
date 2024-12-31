@@ -102,8 +102,8 @@ private:
 	static git_diff_line_cb git_diff_line_callback;
 
 	void printDiffResults(std::vector<DiffResult>& diffResults);
-	std::vector<DiffResult> compare_workdir_to_index(); // git diff	
-	std::vector<DiffResult> compare_head_to_workdir(); // git diff HEAD
+	std::vector<DiffResult> gitDiff(); // git diff	
+	std::vector<DiffResult> gitDiffHead(); // git diff HEAD
 	
 	
 public:
@@ -123,9 +123,9 @@ public:
 	
 	void compare() {
 		std::cout << "\n\ncompare_workdir_to_index" << std::endl;
-		compare_workdir_to_index();
+		gitDiff();
 		std::cout << "\n\ncompare_head_to_workdir" << std::endl;
-		compare_head_to_workdir(); 
+		gitDiffHead(); 
 	};
 
 	void commitCurrentStage(std::string commit_message);

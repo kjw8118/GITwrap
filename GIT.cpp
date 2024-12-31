@@ -492,7 +492,6 @@ git_diff_file_cb GIT::git_diff_file_callback = [](const git_diff_delta* delta, f
 	//std::cout << "git_diff_file_callback " + std::string(delta->new_file.path) << std::endl;
 	return 0;
 };
-
 git_diff_hunk_cb GIT::git_diff_hunk_callback = [](const git_diff_delta* delta, const git_diff_hunk* hunk, void* payload)->int
 {
 	auto diffResults = (std::vector<GIT::DiffResult>*)payload;
@@ -518,7 +517,6 @@ git_diff_hunk_cb GIT::git_diff_hunk_callback = [](const git_diff_delta* delta, c
 	//std::cout << "git_diff_hunk_callback @@ -" << hunk->old_start << "," << hunk->old_lines << " +" << hunk->new_start << "," << hunk->new_lines << " @@" << std::endl;
 	return 0;
 };
-
 git_diff_line_cb GIT::git_diff_line_callback = [](const git_diff_delta* delta, const git_diff_hunk* hunk, const git_diff_line* line, void* payload)->int
 {
 	auto diffResults = (std::vector<GIT::DiffResult>*)payload;
@@ -606,7 +604,7 @@ void GIT::printDiffResults(std::vector<GIT::DiffResult>& diffResults)
 
 	}
 }
-std::vector<GIT::DiffResult> GIT::compare_workdir_to_index() // git diff
+std::vector<GIT::DiffResult> GIT::gitDiff() // git diff
 {
 
 	git_diff* diff = nullptr;
@@ -624,7 +622,7 @@ std::vector<GIT::DiffResult> GIT::compare_workdir_to_index() // git diff
 	return diffResults;
 }
 
-std::vector<GIT::DiffResult> GIT::compare_head_to_workdir() // git diff HEAD
+std::vector<GIT::DiffResult> GIT::gitDiffHead() // git diff HEAD
 {
 	git_object* head_tree_obj = nullptr;
 	if (git_revparse_single(&head_tree_obj, repo, "HEAD^{tree}") < 0)
