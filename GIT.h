@@ -136,7 +136,7 @@ private:
 		git_diff_free(diff);
 	}
 
-	void compare_head_to_workdir()
+	void compare_head_to_workdir() // git diff HEAD
 	{				
 		git_object* head_tree_obj = nullptr;
 		if (git_revparse_single(&head_tree_obj, repo, "HEAD^{tree}") < 0)
