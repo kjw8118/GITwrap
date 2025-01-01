@@ -556,17 +556,17 @@ git_diff_line_cb GIT::git_diff_line_callback = [](const git_diff_delta* delta, c
 	switch (line->origin)
 	{
 	case GIT_DIFF_LINE_ADDITION:
-		diffHunk->diffLines.emplace_back(DiffLine::AddedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
+		diffHunk->diffLines.push_back(DiffLine::AddedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
 		diffHunk->rawLines.push_back("+" + std::string(line->content, line->content_len));
 		diffResult->current_new_line_index++;
 		break;
 	case GIT_DIFF_LINE_DELETION:
-		diffHunk->diffLines.emplace_back(DiffLine::DeletedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
+		diffHunk->diffLines.push_back(DiffLine::DeletedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
 		diffHunk->rawLines.push_back("-" + std::string(line->content, line->content_len));
 		diffResult->current_old_line_index++;
 		break;
 	case GIT_DIFF_LINE_CONTEXT:
-		diffHunk->diffLines.emplace_back(DiffLine::ContextLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
+		diffHunk->diffLines.push_back(DiffLine::ContextLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
 		diffHunk->rawLines.push_back(" " + std::string(line->content, line->content_len));
 		diffResult->current_new_line_index++;
 		diffResult->current_old_line_index++;
@@ -714,7 +714,50 @@ std::string GIT::getContentsAtCommit(std::string filePath, std::string commit_oi
 
 	return file_content;
 }
+std::string GIT::getContentsAtBranch(std::string filePath, std::string branch_name)
+{
+	git_reference* branch_ref = nullptr;
+	git_commit* branch_commit = nullptr;
+	git_tree* tree = nullptr;
+	git_tree_entry* entry = nullptr;
+	git_blob* blob = nullptr;
+	std::string file_content;
 
+	if (git_branch_lookup(&branch_ref, repo, branch_name.c_str(), GIT_BRANCH_LOCAL) < GIT_OK)
+		getLastError("Failed to git_branch_lookup: ");
+
+	if (git_commit_lookup(&branch_commit, repo, git_reference_target(branch_ref)) < GIT_OK)
+		getLastError("Failed to git_commit_lookup: ");
+
+	if (git_commit_tree(&tree, branch_commit) < GIT_OK)
+		getLastError("Failed to git_commit_tree: ");
+
+	switch (git_tree_entry_bypath(&entry, tree, filePath.c_str()))
+	{
+	case GIT_OK:		
+		break;
+	case GIT_ENOTFOUND:
+		return "";
+		break;
+	default:
+		getLastError("Failed to git_tree_entry_bypath: ");
+		break;
+	}
+	
+	// Only GIT_OK case escape
+	if (git_blob_lookup(&blob, repo, git_tree_entry_id(entry)) < GIT_OK)
+		getLastError("Failed to git_blob_lookup: ");
+
+	file_content = std::string(static_cast<const char*>(git_blob_rawcontent(blob)), git_blob_rawsize(blob));
+	
+	git_blob_free(blob);
+	git_tree_entry_free(entry);
+	git_tree_free(tree);
+	git_commit_free(branch_commit);
+	git_reference_free(branch_ref);
+
+	return file_content;
+}
 GIT::~GIT()
 {
 	git_repository_free(repo);

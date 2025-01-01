@@ -145,6 +145,7 @@ public:
 	std::vector<Commit> gitLog();
 
 	std::string getContentsAtCommit(std::string filePath, std::string commit_oid_str);
+	std::string getContentsAtBranch(std::string filePath, std::string branchName);
 
 	void commitCurrentStage(std::string commit_message);
 
