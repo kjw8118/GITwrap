@@ -144,6 +144,8 @@ public:
 	std::vector<DiffResult> gitDiffHead(); // git diff HEAD
 	std::vector<Commit> gitLog();
 
+	std::string getContentsAtCommit(std::string filePath, std::string commit_oid_str);
+
 	void commitCurrentStage(std::string commit_message);
 
 	std::string getCurrentBranch();

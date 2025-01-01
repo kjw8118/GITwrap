@@ -681,6 +681,39 @@ std::vector<GIT::Commit> GIT::gitLog()
 
 }
 
+std::string GIT::getContentsAtCommit(std::string filePath, std::string commit_oid_str)
+{
+	git_oid commit_oid;
+	git_commit* commit = nullptr;
+	git_tree* tree = nullptr;
+	git_tree_entry* entry = nullptr;
+	git_blob* blob = nullptr;
+	std::string file_content;
+
+	if (git_oid_fromstr(&commit_oid, commit_oid_str.c_str()) < GIT_OK)
+		getLastError("Failed to git_oid_fromstr: ");
+
+	if (git_commit_lookup(&commit, repo, &commit_oid) < GIT_OK)
+		getLastError("Failed to git_commit_lookup: ");
+
+	if (git_commit_tree(&tree, commit) < GIT_OK)
+		getLastError("Failed to git_commit_tree: ");
+
+	if(git_tree_entry_bypath(&entry, tree, filePath.c_str()) < GIT_OK)
+		getLastError("Failed to git_tree_entry_bypath: ");
+
+	if (git_blob_lookup(&blob, repo, git_tree_entry_id(entry)) < GIT_OK)
+		getLastError("Failed to git_blob_lookup: ");
+
+	file_content = std::string(static_cast<const char*>(git_blob_rawcontent(blob)), git_blob_rawsize(blob));
+	
+	git_blob_free(blob);
+	git_tree_entry_free(entry);
+	git_tree_free(tree);
+	git_commit_free(commit);
+
+	return file_content;
+}
 
 GIT::~GIT()
 {
