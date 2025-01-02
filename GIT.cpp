@@ -314,7 +314,7 @@ GIT::GIT(std::u8string repoPath, std::u8string userName, std::u8string userEmail
 	auto t0 = std::chrono::system_clock::now();
 	while (git_repository_open(&repo, U8strToU(repoPath)) != GIT_OK)
 	{
-		if(false)/* if (std::chrono::system_clock::now() - t0 > std::chrono::seconds(GIT_TIMEOUT)) */
+		if (std::chrono::system_clock::now() - t0 > std::chrono::seconds(GIT_TIMEOUT)) */
 		{
 			printErrorAndShutdown("git_repository_open timeout!");
 		}
