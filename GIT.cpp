@@ -4,27 +4,27 @@
 
 #include <iostream>
 
-
-void GIT::printErrorAndShutdown(std::string text)
+void GIT::printErrorAndShutdown(std::u8string text)
 {
-	std::cerr << text << std::endl;
+	std::cerr << u8utf8ToLocal(text) << std::endl;
 	git_libgit2_shutdown();
 	exit(EXIT_FAILURE);
 }
 
-void GIT::getLastError(std::string info)
+void GIT::getLastError(std::u8string info)
 {
 
 	const git_error* lastError = git_error_last();
 	if (lastError != nullptr)
-		printErrorAndShutdown(info + lastError->message);
+		printErrorAndShutdown(info + UToU8str(lastError->message));
 	else
-		printErrorAndShutdown(info + "Unknown error messasge");
+		printErrorAndShutdown(info + u8"Unknown error messasge");
 }
 void GIT::clearGitIgnore()
 {
-	std::string gitIgnorePath = repoPath + "/.gitignore";
-	std::ifstream gitIgnoreFileTrunc(gitIgnorePath, std::ios::trunc);
+	std::u8string gitIgnorePath = repoPath + u8"/.gitignore";
+	auto gitIgnorePath_local = u8utf8ToLocal(gitIgnorePath);
+	std::ofstream gitIgnoreFileTrunc(gitIgnorePath_local, std::ios::trunc);
 	if (gitIgnoreFileTrunc.is_open())
 	{
 		std::cout << "git ignore file successfully clear" << std::endl;
@@ -36,30 +36,31 @@ void GIT::clearGitIgnore()
 }
 void GIT::appendGitIgnore(const std::vector<std::string>& ignorePatterns)
 {
-	std::string gitIgnorePath = repoPath + "/.gitignore";
-	std::set<std::string> existingPatterns;
+	std::u8string gitIgnorePath = repoPath + u8"/.gitignore";
+	auto gitIgnorePath_local = u8utf8ToLocal(gitIgnorePath);
+	std::set<std::u8string> existingPatterns;
 
-	std::ifstream gitIgnoreFileIn(gitIgnorePath);
+	std::ifstream gitIgnoreFileIn(gitIgnorePath_local);
 	if (gitIgnoreFileIn.is_open())
 	{
-		std::string line;
+		std::string line; /* Assume UTF8 */
 		while (std::getline(gitIgnoreFileIn, line))
-			existingPatterns.insert(line);
+			existingPatterns.insert(UstrToU8str(line));
 		gitIgnoreFileIn.close();
 	}
 
-	std::ofstream gitIgnoreFileOut(gitIgnorePath, std::ios::app);
+	std::ofstream gitIgnoreFileOut(gitIgnorePath_local, std::ios::app);
 	if (!gitIgnoreFileOut.is_open())
 	{
 		printErrorAndShutdown("gitIgnoreFileOut open failed!");
 	}
 
-	for (const auto& pattern : ignorePatterns)
+	for (const auto& pattern_local : ignorePatterns)
 	{
+		auto pattern = u8localToUtf8(pattern_local);
 		if (existingPatterns.find(pattern) == existingPatterns.end())
 		{
-			gitIgnoreFileOut << pattern << "\n";
-			existingPatterns.insert(pattern);
+			gitIgnoreFileOut << U8strToUstr(pattern) << "\n";
 		}
 	}
 	gitIgnoreFileOut.close();
@@ -73,71 +74,71 @@ GIT::FileStatus GIT::collectRepoStatus()
 	git_status_options opts;
 	if (git_status_options_init(&opts, GIT_STATUS_OPTIONS_VERSION) < 0)
 		getLastError("git_status_options_init failed: ");
-	opts.show = GIT_STATUS_SHOW_INDEX_AND_WORKDIR; // Include untracked files
-	opts.flags = GIT_STATUS_OPT_INCLUDE_UNTRACKED; // Explicitly include untracked files
+	opts.show = GIT_STATUS_SHOW_INDEX_AND_WORKDIR; /* Include untracked files */
+	opts.flags = GIT_STATUS_OPT_INCLUDE_UNTRACKED; /* Explicitly include untracked files */
 
 	git_status_list* statusList;
 	if (git_status_list_new(&statusList, repo, &opts) < 0)
 		getLastError("git_status_list_new failed: ");
 
 	size_t statusCount = git_status_list_entrycount(statusList);
-	//std::cout << "git_status_list_entrycount: " + std::to_string(statusCount) << std::endl;
+	/* std::cout << "git_status_list_entrycount: " + std::to_string(statusCount) << std::endl; */
 	for (size_t i = 0; i < statusCount; i++)
 	{
 		const git_status_entry* entry = git_status_byindex(statusList, i);		
 		if (entry->status & GIT_STATUS_WT_NEW)
 		{
-			fileStatus.notStaged.newFiles.push_back(entry->index_to_workdir->new_file.path);
+			fileStatus.notStaged.newFiles.push_back(UToU8str(entry->index_to_workdir->new_file.path));
 			continue;
 		}
 		if (entry->status & GIT_STATUS_WT_MODIFIED)
 		{
-			fileStatus.notStaged.modifiedFiles.push_back(entry->index_to_workdir->new_file.path);
+			fileStatus.notStaged.modifiedFiles.push_back(UToU8str(entry->index_to_workdir->new_file.path));
 			continue;
 		}
 		if (entry->status & GIT_STATUS_WT_DELETED)
 		{
-			fileStatus.notStaged.deletedFiles.push_back(entry->index_to_workdir->new_file.path);
+			fileStatus.notStaged.deletedFiles.push_back(UToU8str(entry->index_to_workdir->new_file.path));
 			continue;
 		}
 		if (entry->status & GIT_STATUS_WT_TYPECHANGE)
 		{
-			fileStatus.notStaged.typechangedFiles.push_back(entry->index_to_workdir->new_file.path);
+			fileStatus.notStaged.typechangedFiles.push_back(UToU8str(entry->index_to_workdir->new_file.path));
 			continue;
 		}
 		if (entry->status & GIT_STATUS_WT_RENAMED)
 		{
-			fileStatus.notStaged.renamedFiles.push_back(entry->index_to_workdir->new_file.path);
+			fileStatus.notStaged.renamedFiles.push_back(UToU8str(entry->index_to_workdir->new_file.path));
 			continue;
 		}
 		if (entry->status & GIT_STATUS_WT_UNREADABLE)
 		{
-			fileStatus.notStaged.unreadableFiles.push_back(entry->index_to_workdir->new_file.path);
+			fileStatus.notStaged.unreadableFiles.push_back(UToU8str(entry->index_to_workdir->new_file.path));
 			continue;
 		}
 		if (entry->status & GIT_STATUS_INDEX_NEW)
 		{
-			fileStatus.staged.newFiles.push_back(entry->head_to_index->new_file.path);
+			fileStatus.staged.newFiles.push_back(UToU8str(entry->head_to_index->new_file.path));
 			continue;
 		}
 		if (entry->status & GIT_STATUS_INDEX_MODIFIED)
 		{
-			fileStatus.staged.modifiedFiles.push_back(entry->head_to_index->new_file.path);
+			fileStatus.staged.modifiedFiles.push_back(UToU8str(entry->head_to_index->new_file.path));
 			continue;
 		}
 		if (entry->status & GIT_STATUS_INDEX_DELETED)
 		{
-			fileStatus.staged.deletedFiles.push_back(entry->head_to_index->new_file.path);
+			fileStatus.staged.deletedFiles.push_back(UToU8str(entry->head_to_index->new_file.path));
 			continue;
 		}
 		if (entry->status & GIT_STATUS_INDEX_RENAMED)
 		{
-			fileStatus.staged.renamedFiles.push_back(entry->head_to_index->new_file.path);
+			fileStatus.staged.renamedFiles.push_back(UToU8str(entry->head_to_index->new_file.path));
 			continue;
 		}
 		if (entry->status & GIT_STATUS_INDEX_TYPECHANGE)
 		{
-			fileStatus.staged.typechangedFiles.push_back(entry->head_to_index->new_file.path);
+			fileStatus.staged.typechangedFiles.push_back(UToU8str(entry->head_to_index->new_file.path));
 			continue;
 		}
 
@@ -149,38 +150,38 @@ GIT::FileStatus GIT::collectRepoStatus()
 }
 
 
-std::string GIT::printRepoStatus(const GIT::FileStatus& fileStatus)
+std::u8string GIT::u8printRepoStatus(const GIT::FileStatus& fileStatus)
 {
-	std::ostringstream oss;
-	oss << "\nNot Staged:\n";
+	/* std::ostringstream oss_local; */
+	std::u8string oss = u8"";
+	oss += u8"\nNot Staged:\n";
 	for (const auto& file : fileStatus.notStaged.newFiles)
-		oss << "\tUntracked files:\t" << file << "\n";
+		oss += u8"\tUntracked files:\t" + file + u8"\n";
 	for (const auto& file : fileStatus.notStaged.modifiedFiles)
-		oss << "\tModified files:\t" << file << "\n";
+		oss += u8"\tModified files:\t" + (file) + u8"\n";
 	for (const auto& file : fileStatus.notStaged.deletedFiles)
-		oss << "\tDeleted files:\t" << file << "\n";
+		oss += u8"\tDeleted files:\t" + (file) + u8"\n";
 	for (const auto& file : fileStatus.notStaged.renamedFiles)
-		oss << "\tRenamed files:\t" << file << "\n";
+		oss += u8"\tRenamed files:\t" + (file) + u8"\n";
 	for (const auto& file : fileStatus.notStaged.typechangedFiles)
-		oss << "\tTypechanged files:\t" << file << "\n";
+		oss += u8"\tTypechanged files:\t" + (file) + u8"\n";
 	for (const auto& file : fileStatus.notStaged.unreadableFiles)
-		oss << "\tUnreadable files:\t" << file << "\n";
-	oss << "\nStaged:\n";
+		oss += u8"\tUnreadable files:\t" + (file) + u8"\n";
+	oss += u8"\nStaged:\n";
 	for (const auto& file : fileStatus.staged.newFiles)
-		oss << "\New files:\t" << file << "\n";
+		oss += u8"\tNew files:\t" + (file) + u8"\n";
 	for (const auto& file : fileStatus.staged.modifiedFiles)
-		oss << "\tModified files:\t" << file << "\n";
+		oss += u8"\tModified files:\t" + (file) + u8"\n";
 	for (const auto& file : fileStatus.staged.deletedFiles)
-		oss << "\tDeleted files:\t" << file << "\n";
+		oss += u8"\tDeleted files:\t" + (file) + u8"\n";
 	for (const auto& file : fileStatus.staged.renamedFiles)
-		oss << "\tRenamed files:\t" << file << "\n";
+		oss += u8"\tRenamed files:\t" + (file) + u8"\n";
 	for (const auto& file : fileStatus.staged.typechangedFiles)
-		oss << "\tTypechanged files:\t" << file << "\n";
+		oss += u8"\tTypechanged files:\t" + (file) + u8"\n";
 
-	return oss.str();
+	return oss;
 }
-
-void GIT::stagingFiles(std::vector<std::string> filesPath)
+void GIT::stagingFiles(std::vector<std::u8string> filesPath)
 {
 	git_index* index = nullptr;
 	if (git_repository_index(&index, repo) < 0)
@@ -188,9 +189,9 @@ void GIT::stagingFiles(std::vector<std::string> filesPath)
 
 	for (const auto& filePath : filesPath)
 	{
-		if (git_index_add_bypath(index, filePath.c_str()) < 0)
-			getLastError("git_index_add_bypath failed at " + filePath + ": ");
-		std::cout << "Added file to index: " + filePath << std::endl;
+		if (git_index_add_bypath(index, U8strToU(filePath)) < 0)
+			getLastError("git_index_add_bypath failed at " + u8utf8ToLocal(filePath) + ": ");
+		std::cout << "\nAdded file to index: " + u8utf8ToLocal(filePath) << std::endl;
 	}
 
 
@@ -203,6 +204,13 @@ void GIT::stagingFiles(std::vector<std::string> filesPath)
 		getLastError("git_index_write failed: ");
 		break;
 	}
+}
+void GIT::stagingFiles(std::vector<std::string> filesPath_local)
+{
+	std::vector<std::u8string> filesPath;
+	for (auto filePath_local : filesPath_local)
+		filesPath.push_back(u8localToUtf8(filePath_local));
+	return stagingFiles(filesPath);
 }
 void GIT::stagingAllUntrackedFiles()
 {
@@ -229,12 +237,12 @@ void GIT::stagingAllTypechangedFiles()
 	auto fileStatus = collectRepoStatus();
 	stagingFiles(fileStatus.notStaged.typechangedFiles);
 }
-// except unreadable files
+/* except unreadable files */
 
 void GIT::stagingAll()
 {
 	auto fileStatus = collectRepoStatus();
-	std::vector<std::string> notStagedFiles;
+	std::vector<std::u8string> notStagedFiles;
 	notStagedFiles.insert(notStagedFiles.end(), fileStatus.notStaged.newFiles.begin(), fileStatus.notStaged.newFiles.end());
 	notStagedFiles.insert(notStagedFiles.end(), fileStatus.notStaged.modifiedFiles.begin(), fileStatus.notStaged.modifiedFiles.end());
 	notStagedFiles.insert(notStagedFiles.end(), fileStatus.notStaged.deletedFiles.begin(), fileStatus.notStaged.deletedFiles.end());
@@ -243,7 +251,7 @@ void GIT::stagingAll()
 	stagingFiles(notStagedFiles);
 }
 
-void GIT::commitCurrentStage(std::string commit_message)
+void GIT::u8commitCurrentStage(std::u8string commit_message)
 {
 	git_index* index = nullptr;
 	if (git_repository_index(&index, repo) < 0)
@@ -258,7 +266,7 @@ void GIT::commitCurrentStage(std::string commit_message)
 		getLastError("git_tree_lookup failed: ");
 
 	git_signature* sig = nullptr;
-	if (git_signature_now(&sig, userName.c_str(), userEmail.c_str()) < 0)
+	if (git_signature_now(&sig, U8strToU(userName), U8strToU(userEmail)) < 0)
 		getLastError("git_signature_now failed: ");
 
 	git_oid parent_commit_oid;
@@ -276,7 +284,7 @@ void GIT::commitCurrentStage(std::string commit_message)
 		sig,
 		sig,
 		nullptr,
-		commit_message.c_str(),
+		U8strToU(commit_message),
 		tree,
 		parent_commit ? 1 : 0,
 		parent_commit ? (const git_commit**)&parent_commit : nullptr
@@ -291,26 +299,26 @@ void GIT::commitCurrentStage(std::string commit_message)
 	
 }
 
-GIT::GIT(std::string repoPath, std::string userName, std::string userEmail)
+GIT::GIT(std::u8string repoPath, std::u8string userName, std::u8string userEmail)
 	: repoPath(repoPath), userName(userName), userEmail(userEmail)
 {
-
-	if (!std::filesystem::is_directory(repoPath))
+	auto repoPath_local = u8utf8ToLocal(repoPath);
+	if (!std::filesystem::is_directory(repoPath_local))
 	{
 		std::cout << "Repo Path directory is not exist" << std::endl;
-		if (std::filesystem::create_directory(repoPath))
-			std::cout << "Create dir: " << repoPath << std::endl;		
+		if (std::filesystem::create_directory(repoPath_local))
+			std::cout << "Create dir: " << repoPath_local << std::endl;
 	}
 
 	git_libgit2_init();
 	auto t0 = std::chrono::system_clock::now();
-	while (git_repository_open(&repo, repoPath.c_str()) != GIT_OK)
+	while (git_repository_open(&repo, U8strToU(repoPath)) != GIT_OK)
 	{
-		if (std::chrono::system_clock::now() - t0 > std::chrono::seconds(GIT_TIMEOUT))
+		if(false)/* if (std::chrono::system_clock::now() - t0 > std::chrono::seconds(GIT_TIMEOUT)) */
 		{
 			printErrorAndShutdown("git_repository_open timeout!");
 		}
-		if (git_repository_init(&repo, repoPath.c_str(), false) < 0)
+		if (git_repository_init(&repo, U8strToU(repoPath), false) < 0)
 			getLastError("git_repository_init failed: ");
 		std::cout << "git_repository_init success" << std::endl;
 
@@ -326,12 +334,12 @@ GIT::GIT(std::string repoPath, std::string userName, std::string userEmail)
 }
 
 
-bool GIT::isRepoExist(std::string repoPath)
+bool GIT::isRepoExist(std::u8string repoPath)
 {
 	bool  ret = false;
 	git_repository* repoTemp = nullptr;
 	git_libgit2_init();
-	int git_ret = git_repository_open(&repoTemp, repoPath.c_str());
+	int git_ret = git_repository_open(&repoTemp, U8strToU(repoPath));
 	if (git_ret == GIT_OK)
 		ret = true;
 	else
@@ -363,13 +371,13 @@ std::string GIT::getCurrentBranch()
 		break;
 	}
 
-	// only GIT_OK case escape from switch
+	/* only GIT_OK case escape from switch */
 	const char* branch_name = nullptr;
 	if (git_branch_name(&branch_name, head_ref) < 0)
 		getLastError("git_branch_name failed: ");
 
 	git_reference_free(head_ref);
-	return std::string(branch_name);
+	return utf8ToLocal(branch_name);
 
 }
 
@@ -379,26 +387,26 @@ std::string GIT::getCurrentStatus()
 	return printRepoStatus(fileStatus);
 }
 
-void GIT::createBranch(const std::string& branch_name)
-{
+void GIT::u8createBranch(const std::u8string& branch_name)
+{	
 	git_reference* new_branch = nullptr;
 	git_object* head_commit = nullptr;
 	if (git_revparse_single(&head_commit, repo, "HEAD") < 0)
 		getLastError("git_revparse_single failed: ");
-	if (git_branch_create(&new_branch, repo, branch_name.c_str(), (git_commit*)head_commit, 0) < 0)
+	if (git_branch_create(&new_branch, repo, U8strToU(branch_name), (git_commit*)head_commit, 0) < 0)
 		getLastError("git_branch_create failed: ");
 
 	git_object_free(head_commit);
 	git_reference_free(new_branch);
 
 }
-void GIT::switchBranch(const std::string& branch_name)
+void GIT::u8switchBranch(const std::u8string& branch_name)
 {
 	git_checkout_options opts = GIT_CHECKOUT_OPTIONS_INIT;
 	opts.checkout_strategy = GIT_CHECKOUT_SAFE;
 
 	git_reference* branch_ref = nullptr;
-	if (git_branch_lookup(&branch_ref, repo, branch_name.c_str(), GIT_BRANCH_LOCAL) < 0)
+	if (git_branch_lookup(&branch_ref, repo, U8strToU(branch_name), GIT_BRANCH_LOCAL) < 0)
 		getLastError("git_branch_lookup failed: ");
 
 	if (git_repository_set_head(repo, git_reference_name(branch_ref)) < 0)
@@ -409,7 +417,7 @@ void GIT::switchBranch(const std::string& branch_name)
 
 	git_reference_free(branch_ref);
 }
-void GIT::mergeBranch(const std::string& source_branch)
+void GIT::u8mergeBranch(const std::u8string& source_branch)
 {
 	git_reference* target_ref = nullptr;
 	git_reference* source_ref = nullptr;
@@ -418,7 +426,7 @@ void GIT::mergeBranch(const std::string& source_branch)
 	if (git_repository_head(&target_ref, repo) < 0)
 		getLastError("git_repository_head failed: ");
 
-	if (git_branch_lookup(&source_ref, repo, source_branch.c_str(), GIT_BRANCH_LOCAL) < 0)
+	if (git_branch_lookup(&source_ref, repo, U8strToU(source_branch), GIT_BRANCH_LOCAL) < 0)
 		getLastError("git_branch_lookup failed: ");
 
 	if(git_annotated_commit_from_ref(&source_annotated, repo, source_ref) < 0)
@@ -431,11 +439,11 @@ void GIT::mergeBranch(const std::string& source_branch)
 	git_reference_free(source_ref);
 	git_annotated_commit_free(source_annotated);
 }
-void GIT::deleteBranch(const std::string& branch_name)
+void GIT::u8deleteBranch(const std::u8string& branch_name)
 {
 	git_reference* branch_ref = nullptr;
 
-	if(git_branch_lookup(&branch_ref, repo, branch_name.c_str(), GIT_BRANCH_LOCAL) < 0)
+	if(git_branch_lookup(&branch_ref, repo, U8strToU(branch_name), GIT_BRANCH_LOCAL) < 0)
 		getLastError("git_branch_lookup failed: ");
 
 	if(git_branch_delete(branch_ref) < 0)
@@ -486,10 +494,10 @@ git_diff_file_cb GIT::git_diff_file_callback = [](const git_diff_delta* delta, f
 {
 	auto diffResults = (std::vector<GIT::DiffResult>*)payload;
 	GIT::DiffResult diffResult;
-	diffResult.filePath = std::string(delta->new_file.path);
+	diffResult.filePath = UToU8str(delta->new_file.path);
 	diffResults->push_back(diffResult);
 
-	//std::cout << "git_diff_file_callback " + std::string(delta->new_file.path) << std::endl;
+	/* std::cout << "git_diff_file_callback " + std::string(delta->new_file.path) << std::endl; */
 	return 0;
 };
 git_diff_hunk_cb GIT::git_diff_hunk_callback = [](const git_diff_delta* delta, const git_diff_hunk* hunk, void* payload)->int
@@ -497,14 +505,14 @@ git_diff_hunk_cb GIT::git_diff_hunk_callback = [](const git_diff_delta* delta, c
 	auto diffResults = (std::vector<GIT::DiffResult>*)payload;
 	if (diffResults->empty())
 	{
-		//std::cout << "git_diff_hunk_callback diffResults->empty()" << std::endl;
+		/* std::cout << "git_diff_hunk_callback diffResults->empty()" << std::endl; */
 		return -1;
 	}
 
 	GIT::DiffResult* diffResult = &diffResults->back();
-	if (diffResult->filePath != std::string(delta->new_file.path))
+	if (diffResult->filePath != UToU8str(delta->new_file.path))
 	{
-		//std::cout << "git_diff_hunk_callback diffResult->filePath != std::string(delta->new_file.path)" << std::endl;
+		/* std::cout << "git_diff_hunk_callback diffResult->filePath != std::string(delta->new_file.path)" << std::endl; */
 		return -1;
 	}
 
@@ -514,7 +522,7 @@ git_diff_hunk_cb GIT::git_diff_hunk_callback = [](const git_diff_delta* delta, c
 	diffResult->current_new_line_index = hunk->new_start;
 	diffResult->current_old_line_index = hunk->old_start;
 
-	//std::cout << "git_diff_hunk_callback @@ -" << hunk->old_start << "," << hunk->old_lines << " +" << hunk->new_start << "," << hunk->new_lines << " @@" << std::endl;
+	/* std::cout << "git_diff_hunk_callback @@ -" << hunk->old_start << "," << hunk->old_lines << " +" << hunk->new_start << "," << hunk->new_lines << " @@" << std::endl; */
 	return 0;
 };
 git_diff_line_cb GIT::git_diff_line_callback = [](const git_diff_delta* delta, const git_diff_hunk* hunk, const git_diff_line* line, void* payload)->int
@@ -522,32 +530,32 @@ git_diff_line_cb GIT::git_diff_line_callback = [](const git_diff_delta* delta, c
 	auto diffResults = (std::vector<GIT::DiffResult>*)payload;
 	if (diffResults->empty())
 	{
-		//std::cout << "git_diff_line_callback diffResults->empty()" << std::endl;
+		/* std::cout << "git_diff_line_callback diffResults->empty()" << std::endl; */
 		return -1;
 	}
 
 	GIT::DiffResult* diffResult = &diffResults->back();
-	if (diffResult->filePath != std::string(delta->new_file.path))
+	if (diffResult->filePath != UToU8str(delta->new_file.path))
 	{
-		//std::cout << "git_diff_line_callback diffResult->filePath != std::string(delta->new_file.path)" << std::endl;
+		/* std::cout << "git_diff_line_callback diffResult->filePath != std::string(delta->new_file.path)" << std::endl; */
 		return -1;
 	}
 
 	if (diffResult->diffHunks.empty())
 	{
-		//std::cout << "git_diff_line_callback diffResult->diffHunks.empty()" << std::endl;
+		/* std::cout << "git_diff_line_callback diffResult->diffHunks.empty()" << std::endl; */
 		return -1;
 	}
 
 	DiffHunk* diffHunk = &diffResult->diffHunks.back();
-	if ((diffHunk->hunk.new_start > diffResult->current_new_line_index) || ((diffHunk->hunk.new_start + diffHunk->hunk.new_lines) < diffResult->current_new_line_index)) // exactly start + lines - 1 < index
+	if ((diffHunk->hunk.new_start > diffResult->current_new_line_index) || ((diffHunk->hunk.new_start + diffHunk->hunk.new_lines) < diffResult->current_new_line_index)) /* exactly start + lines - 1 < index */
 	{
-		//std::cout << "git_diff_line_callback " << diffHunk->hunk.new_start << ", " << diffResult->current_new_line_index << ", " << diffHunk->hunk.new_start + diffHunk->hunk.new_lines - 1 << " (diffHunk->hunk.new_start > diffResult->current_new_line_index) || ((diffHunk->hunk.new_start + diffHunk->hunk.new_lines - 1) < diffResult->current_new_line_index)" << std::endl;
+		/* std::cout << "git_diff_line_callback " << diffHunk->hunk.new_start << ", " << diffResult->current_new_line_index << ", " << diffHunk->hunk.new_start + diffHunk->hunk.new_lines - 1 << " (diffHunk->hunk.new_start > diffResult->current_new_line_index) || ((diffHunk->hunk.new_start + diffHunk->hunk.new_lines - 1) < diffResult->current_new_line_index)" << std::endl; */
 		return -1;
 	}
-	if ((diffHunk->hunk.old_start > diffResult->current_old_line_index) || ((diffHunk->hunk.old_start + diffHunk->hunk.old_lines) < diffResult->current_old_line_index)) // exactly start + lines - 1 < index
+	if ((diffHunk->hunk.old_start > diffResult->current_old_line_index) || ((diffHunk->hunk.old_start + diffHunk->hunk.old_lines) < diffResult->current_old_line_index)) /* exactly start + lines - 1 < index */
 	{
-		//std::cout << "git_diff_line_callback " << diffHunk->hunk.old_start << ", " << diffResult->current_old_line_index << ", " << diffHunk->hunk.old_start + diffHunk->hunk.old_lines - 1 << " (diffHunk->hunk.old_start > diffResult->current_old_line_index) || ((diffHunk->hunk.old_start + diffHunk->hunk.old_lines - 1) < diffResult->current_old_line_index)" << std::endl;
+		/* std::cout << "git_diff_line_callback " << diffHunk->hunk.old_start << ", " << diffResult->current_old_line_index << ", " << diffHunk->hunk.old_start + diffHunk->hunk.old_lines - 1 << " (diffHunk->hunk.old_start > diffResult->current_old_line_index) || ((diffHunk->hunk.old_start + diffHunk->hunk.old_lines - 1) < diffResult->current_old_line_index)" << std::endl; */
 		return -1;
 	}
 
@@ -557,24 +565,24 @@ git_diff_line_cb GIT::git_diff_line_callback = [](const git_diff_delta* delta, c
 	{
 	case GIT_DIFF_LINE_ADDITION:
 		diffHunk->diffLines.push_back(DiffLine::AddedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
-		diffHunk->rawLines.push_back("+" + std::string(line->content, line->content_len));
+		diffHunk->rawLines.push_back(u8"+" + UstrToU8str(std::string(line->content, line->content_len)));
 		diffResult->current_new_line_index++;
 		break;
 	case GIT_DIFF_LINE_DELETION:
 		diffHunk->diffLines.push_back(DiffLine::DeletedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
-		diffHunk->rawLines.push_back("-" + std::string(line->content, line->content_len));
+		diffHunk->rawLines.push_back(u8"-" + UstrToU8str(std::string(line->content, line->content_len)));
 		diffResult->current_old_line_index++;
 		break;
 	case GIT_DIFF_LINE_CONTEXT:
 		diffHunk->diffLines.push_back(DiffLine::ContextLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
-		diffHunk->rawLines.push_back(" " + std::string(line->content, line->content_len));
+		diffHunk->rawLines.push_back(u8" " + UstrToU8str(std::string(line->content, line->content_len)));
 		diffResult->current_new_line_index++;
 		diffResult->current_old_line_index++;
 		break;
 	default:
 		break;
 	}
-	//std::cout << "git_diff_line_callback " << diffHunk->rawLines.back();
+	/* std::cout << "git_diff_line_callback " << diffHunk->rawLines.back(); */
 	return 0;
 };
 
@@ -582,7 +590,7 @@ void GIT::printDiffResults(std::vector<GIT::DiffResult>& diffResults)
 {
 	for (auto diffResult : diffResults)
 	{
-		std::cout << "\nFile: " << diffResult.filePath << std::endl;
+		std::cout << "\nFile: " << u8utf8ToLocal(diffResult.filePath) << std::endl;
 		for (auto diffHunk : diffResult.diffHunks)
 		{
 			for (auto diffLine : diffHunk.diffLines)
@@ -590,13 +598,13 @@ void GIT::printDiffResults(std::vector<GIT::DiffResult>& diffResults)
 				switch (diffLine.type)
 				{
 				case DiffLine::LINETYPE::ADDED:
-					std::cout << "+" + diffLine.line;
+					std::cout << "+" + u8utf8ToLocal(diffLine.line);
 					break;
 				case DiffLine::LINETYPE::DELETED:
-					std::cout << "-" + diffLine.line;
+					std::cout << "-" + u8utf8ToLocal(diffLine.line);
 					break;
 				case DiffLine::LINETYPE::CONTEXT:
-					std::cout << " " + diffLine.line;
+					std::cout << " " + u8utf8ToLocal(diffLine.line);
 					break;
 				}
 			}
@@ -604,7 +612,7 @@ void GIT::printDiffResults(std::vector<GIT::DiffResult>& diffResults)
 
 	}
 }
-std::vector<GIT::DiffResult> GIT::gitDiff() // git diff
+std::vector<GIT::DiffResult> GIT::gitDiff() /* git diff */
 {
 
 	git_diff* diff = nullptr;
@@ -617,12 +625,12 @@ std::vector<GIT::DiffResult> GIT::gitDiff() // git diff
 	if (git_diff_foreach(diff, git_diff_file_callback, nullptr, git_diff_hunk_callback, git_diff_line_callback, &diffResults) < 0)
 		getLastError("git_diff_foreach failed: ");
 
-	git_diff_free(diff);
+	git_diff_free(diff);	
 
 	return diffResults;
 }
 
-std::vector<GIT::DiffResult> GIT::gitDiffHead() // git diff HEAD
+std::vector<GIT::DiffResult> GIT::gitDiffHead() /* git diff HEAD */
 {
 	git_object* head_tree_obj = nullptr;
 	if (git_revparse_single(&head_tree_obj, repo, "HEAD^{tree}") < 0)
@@ -668,8 +676,8 @@ std::vector<GIT::Commit> GIT::gitLog()
 		char oid_str[GIT_OID_HEXSZ + 1];
 		git_oid_tostr(oid_str, sizeof(oid_str), &oid);
 
-		// store to commit history		
-		commits.emplace_back(oid, std::string(oid_str), Author(author->name, author->email, author->when), std::string(message));
+		/* store to commit history */
+		commits.emplace_back(oid, UToU8str(oid_str), Author(author->name, author->email, author->when), UToU8str(message));
 
 		git_commit_free(commit);
 
@@ -681,7 +689,7 @@ std::vector<GIT::Commit> GIT::gitLog()
 
 }
 
-std::string GIT::getContentsAtCommit(std::string filePath, std::string commit_oid_str)
+std::u8string GIT::u8getContentsAtCommit(std::string filePath_u8, std::string commit_oid_str_u8)
 {
 	git_oid commit_oid;
 	git_commit* commit = nullptr;
@@ -690,7 +698,7 @@ std::string GIT::getContentsAtCommit(std::string filePath, std::string commit_oi
 	git_blob* blob = nullptr;
 	std::string file_content;
 
-	if (git_oid_fromstr(&commit_oid, commit_oid_str.c_str()) < GIT_OK)
+	if (git_oid_fromstr(&commit_oid, commit_oid_str_u8.c_str()) < GIT_OK)
 		getLastError("Failed to git_oid_fromstr: ");
 
 	if (git_commit_lookup(&commit, repo, &commit_oid) < GIT_OK)
@@ -699,22 +707,23 @@ std::string GIT::getContentsAtCommit(std::string filePath, std::string commit_oi
 	if (git_commit_tree(&tree, commit) < GIT_OK)
 		getLastError("Failed to git_commit_tree: ");
 
-	if(git_tree_entry_bypath(&entry, tree, filePath.c_str()) < GIT_OK)
+	if (git_tree_entry_bypath(&entry, tree, filePath_u8.c_str()) < GIT_OK)
 		getLastError("Failed to git_tree_entry_bypath: ");
 
 	if (git_blob_lookup(&blob, repo, git_tree_entry_id(entry)) < GIT_OK)
 		getLastError("Failed to git_blob_lookup: ");
 
 	file_content = std::string(static_cast<const char*>(git_blob_rawcontent(blob)), git_blob_rawsize(blob));
-	
+
 	git_blob_free(blob);
 	git_tree_entry_free(entry);
 	git_tree_free(tree);
 	git_commit_free(commit);
 
-	return file_content;
+	return UstrToU8str(file_content);
 }
-std::string GIT::getContentsAtBranch(std::string filePath, std::string branch_name)
+
+std::u8string GIT::u8getContentsAtBranch(std::string filePath_u8, std::string branch_name_u8)
 {
 	git_reference* branch_ref = nullptr;
 	git_commit* branch_commit = nullptr;
@@ -723,7 +732,7 @@ std::string GIT::getContentsAtBranch(std::string filePath, std::string branch_na
 	git_blob* blob = nullptr;
 	std::string file_content;
 
-	if (git_branch_lookup(&branch_ref, repo, branch_name.c_str(), GIT_BRANCH_LOCAL) < GIT_OK)
+	if (git_branch_lookup(&branch_ref, repo, U8strToU(branch_name_u8), GIT_BRANCH_LOCAL) < GIT_OK)
 		getLastError("Failed to git_branch_lookup: ");
 
 	if (git_commit_lookup(&branch_commit, repo, git_reference_target(branch_ref)) < GIT_OK)
@@ -732,19 +741,19 @@ std::string GIT::getContentsAtBranch(std::string filePath, std::string branch_na
 	if (git_commit_tree(&tree, branch_commit) < GIT_OK)
 		getLastError("Failed to git_commit_tree: ");
 
-	switch (git_tree_entry_bypath(&entry, tree, filePath.c_str()))
+	switch (git_tree_entry_bypath(&entry, tree, U8strToU(filePath_u8)))
 	{
-	case GIT_OK:		
+	case GIT_OK:
 		break;
 	case GIT_ENOTFOUND:
-		return "";
+		return u8"";
 		break;
 	default:
 		getLastError("Failed to git_tree_entry_bypath: ");
 		break;
 	}
-	
-	// Only GIT_OK case escape
+
+	/* Only GIT_OK case escape */
 	if (git_blob_lookup(&blob, repo, git_tree_entry_id(entry)) < GIT_OK)
 		getLastError("Failed to git_blob_lookup: ");
 
@@ -756,8 +765,60 @@ std::string GIT::getContentsAtBranch(std::string filePath, std::string branch_na
 	git_commit_free(branch_commit);
 	git_reference_free(branch_ref);
 
-	return file_content;
+	return UstrToU8str(file_content);
 }
+
+std::string GIT::localToUtf8(const std::string& localStr)
+{
+	/* 로컬 인코딩 → UTF - 16 변환 */
+	int wlen = MultiByteToWideChar(CP_ACP, 0, localStr.c_str(), -1, nullptr, 0);
+	if (wlen <= 0) {
+		throw std::runtime_error("Failed to convert Local Encoding to UTF-16");
+	}
+	std::wstring wideStr(wlen, L'\0');
+	MultiByteToWideChar(CP_ACP, 0, localStr.c_str(), -1, &wideStr[0], wlen);
+
+	/* UTF - 16 → UTF - 8 변환 */
+	int u8len = WideCharToMultiByte(CP_UTF8, 0, wideStr.c_str(), -1, nullptr, 0, nullptr, nullptr);
+	if (u8len <= 0) {
+		throw std::runtime_error("Failed to convert UTF-16 to UTF-8");
+	}
+	std::string utf8Str(u8len, '\0');
+	WideCharToMultiByte(CP_UTF8, 0, wideStr.c_str(), -1, &utf8Str[0], u8len, nullptr, nullptr);
+
+	
+	return utf8Str;
+}
+std::u8string GIT::u8localToUtf8(const std::string& localStr)
+{
+	return std::u8string(reinterpret_cast<const char8_t*>(localToUtf8(localStr).c_str()));
+}
+std::string GIT::utf8ToLocal(const std::string& utf8Str)
+{	
+	/* UTF - 8 → UTF - 16 변환 */
+	int wlen = MultiByteToWideChar(CP_UTF8, 0, reinterpret_cast<const char*>(utf8Str.c_str()), -1, nullptr, 0);
+	if (wlen <= 0) {
+		throw std::runtime_error("Failed to convert UTF-8 to UTF-16");
+	}
+	std::wstring wideStr(wlen, L'\0');
+	MultiByteToWideChar(CP_UTF8, 0, reinterpret_cast<const char*>(utf8Str.c_str()), -1, &wideStr[0], wlen);
+
+	/* UTF - 16 → Local Encoding 변환 */
+	int len = WideCharToMultiByte(CP_ACP, 0, wideStr.c_str(), -1, nullptr, 0, nullptr, nullptr);
+	if (len <= 0) {
+		throw std::runtime_error("Failed to convert UTF-16 to Local Encoding");
+	}
+	std::string localStr(len, '\0');
+	WideCharToMultiByte(CP_ACP, 0, wideStr.c_str(), -1, &localStr[0], len, nullptr, nullptr);
+	
+	return localStr;
+}
+std::string GIT::u8utf8ToLocal(const std::u8string& utf8Str)
+{	
+	return utf8ToLocal(std::string(reinterpret_cast<const char*>(utf8Str.c_str())));
+}
+
+
 GIT::~GIT()
 {
 	git_repository_free(repo);
