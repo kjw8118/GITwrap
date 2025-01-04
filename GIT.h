@@ -178,6 +178,7 @@ public:
 	static bool isRepoExist(std::string repoPath_local8bit)
 	{ return isRepoExist(u8localToUtf8(repoPath_local8bit)); };
 
+
 	static GIT* cloneFromRemote(std::u8string remoteRepoPath, std::u8string localRepoPath, std::u8string userName = u8"", std::u8string userEmail = u8"");
 	static GIT* cloneFromRemote(std::u8string remoteRepoPath, std::u8string localRepoPath, std::pair<std::u8string, std::u8string> user = { u8"", u8"" }) 
 	{ return cloneFromRemote(remoteRepoPath, localRepoPath, user.first, user.second); };
