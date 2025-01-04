@@ -23,8 +23,8 @@ void GIT::getLastError(std::u8string info)
 void GIT::clearGitIgnore()
 {
 	std::u8string gitIgnorePath = repoPath + u8"/.gitignore";
-	auto gitIgnorePath_local = u8utf8ToLocal(gitIgnorePath);
-	std::ofstream gitIgnoreFileTrunc(gitIgnorePath_local, std::ios::trunc);
+	auto gitIgnorePath_local8bit = u8utf8ToLocal(gitIgnorePath);
+	std::ofstream gitIgnoreFileTrunc(gitIgnorePath_local8bit, std::ios::trunc);
 	if (gitIgnoreFileTrunc.is_open())
 	{
 		std::cout << "git ignore file successfully clear" << std::endl;
@@ -37,10 +37,10 @@ void GIT::clearGitIgnore()
 void GIT::appendGitIgnore(const std::vector<std::string>& ignorePatterns)
 {
 	std::u8string gitIgnorePath = repoPath + u8"/.gitignore";
-	auto gitIgnorePath_local = u8utf8ToLocal(gitIgnorePath);
+	auto gitIgnorePath_local8bit = u8utf8ToLocal(gitIgnorePath);
 	std::set<std::u8string> existingPatterns;
 
-	std::ifstream gitIgnoreFileIn(gitIgnorePath_local);
+	std::ifstream gitIgnoreFileIn(gitIgnorePath_local8bit);
 	if (gitIgnoreFileIn.is_open())
 	{
 		std::string line; /* Assume UTF8 */
@@ -49,15 +49,15 @@ void GIT::appendGitIgnore(const std::vector<std::string>& ignorePatterns)
 		gitIgnoreFileIn.close();
 	}
 
-	std::ofstream gitIgnoreFileOut(gitIgnorePath_local, std::ios::app);
+	std::ofstream gitIgnoreFileOut(gitIgnorePath_local8bit, std::ios::app);
 	if (!gitIgnoreFileOut.is_open())
 	{
 		printErrorAndShutdown("gitIgnoreFileOut open failed!");
 	}
 
-	for (const auto& pattern_local : ignorePatterns)
+	for (const auto& pattern_local8bit : ignorePatterns)
 	{
-		auto pattern = u8localToUtf8(pattern_local);
+		auto pattern = u8localToUtf8(pattern_local8bit);
 		if (existingPatterns.find(pattern) == existingPatterns.end())
 		{
 			gitIgnoreFileOut << U8strToUstr(pattern) << "\n";
@@ -152,7 +152,7 @@ GIT::FileStatus GIT::collectRepoStatus()
 
 std::u8string GIT::u8printRepoStatus(const GIT::FileStatus& fileStatus)
 {
-	/* std::ostringstream oss_local; */
+	/* std::ostringstream oss_local8bit; */
 	std::u8string oss = u8"";
 	oss += u8"\nNot Staged:\n";
 	for (const auto& file : fileStatus.notStaged.newFiles)
@@ -205,11 +205,11 @@ void GIT::stagingFiles(std::vector<std::u8string> filesPath)
 		break;
 	}
 }
-void GIT::stagingFiles(std::vector<std::string> filesPath_local)
+void GIT::stagingFiles(std::vector<std::string> filesPath_local8bit)
 {
 	std::vector<std::u8string> filesPath;
-	for (auto filePath_local : filesPath_local)
-		filesPath.push_back(u8localToUtf8(filePath_local));
+	for (auto filePath_local8bit : filesPath_local8bit)
+		filesPath.push_back(u8localToUtf8(filePath_local8bit));
 	return stagingFiles(filesPath);
 }
 void GIT::stagingAllUntrackedFiles()
@@ -251,7 +251,7 @@ void GIT::stagingAll()
 	stagingFiles(notStagedFiles);
 }
 
-void GIT::u8commitCurrentStage(std::u8string commit_message)
+void GIT::u8gitCommit(std::u8string commit_message)
 {
 	git_index* index = nullptr;
 	if (git_repository_index(&index, repo) < 0)
@@ -299,22 +299,87 @@ void GIT::u8commitCurrentStage(std::u8string commit_message)
 	
 }
 
+void GIT::gitPull()
+{
+	git_remote* remote = nullptr;
+	if (git_remote_lookup(&remote, repo, "origin") < GIT_OK)
+		getLastError("Failed to git_remote_lookup: ");
+
+	// Fetch updates from remote
+	if (git_remote_fetch(remote, nullptr, nullptr, nullptr) < GIT_OK)
+		getLastError("Failed to git_remote_fetch: ");
+
+	// Merge the updates into the current branch
+	git_reference* head_ref = nullptr;
+	git_repository_head(&head_ref, repo);
+
+	git_object* head_obj = nullptr;
+	git_reference_peel(&head_obj, head_ref, GIT_OBJECT_COMMIT);
+
+	git_annotated_commit* annotated_commit = nullptr;
+	git_annotated_commit_from_ref(&annotated_commit, repo, head_ref);
+
+	git_merge_analysis_t analysis;
+	git_merge_preference_t preference;
+
+	git_merge_analysis(&analysis, &preference, repo, (const git_annotated_commit**)&annotated_commit, 1);
+	
+	if (analysis & GIT_MERGE_ANALYSIS_FASTFORWARD) {
+		git_reference* new_ref = nullptr;
+		std::cout << "Fast-forwarding..." << std::endl;
+		if (git_reference_set_target(&new_ref, head_ref, git_object_id(head_obj), "Fast-forward merge") < GIT_OK)
+			getLastError("Failed to git_reference_set_target: ");
+		git_reference_free(new_ref);
+	}
+	else {
+		std::cerr << "Non-fast-forward merge required, which is not implemented in this example." << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	git_remote_free(remote);
+	git_reference_free(head_ref);
+	git_object_free(head_obj);
+	git_annotated_commit_free(annotated_commit);
+}
+
+void GIT::gitPush()
+{
+	git_remote* remote = nullptr;
+
+	if (git_remote_lookup(&remote, repo, "origin") < GIT_OK)
+		getLastError("Failed to git_remote_lookup: ");
+
+	git_push_options push_opts = GIT_PUSH_OPTIONS_INIT;
+
+	git_strarray refspecs;
+	const char* specs[] = { "refs/heads/main" };
+	refspecs.strings = const_cast<char**>(specs);
+	refspecs.count = 1;
+
+	if (git_remote_push(remote, &refspecs, &push_opts) < GIT_OK)
+		getLastError("Failed to git_remote_push: ");
+
+	std::cout << "Pushed to remote successfully." << std::endl;
+
+	git_remote_free(remote);
+}
+
 GIT::GIT(std::u8string repoPath, std::u8string userName, std::u8string userEmail)
 	: repoPath(repoPath), userName(userName), userEmail(userEmail)
 {
-	auto repoPath_local = u8utf8ToLocal(repoPath);
-	if (!std::filesystem::is_directory(repoPath_local))
+	auto repoPath_local8bit = u8utf8ToLocal(repoPath);
+	if (!std::filesystem::is_directory(repoPath_local8bit))
 	{
 		std::cout << "Repo Path directory is not exist" << std::endl;
-		if (std::filesystem::create_directory(repoPath_local))
-			std::cout << "Create dir: " << repoPath_local << std::endl;
+		if (std::filesystem::create_directory(repoPath_local8bit))
+			std::cout << "Create dir: " << repoPath_local8bit << std::endl;
 	}
 
 	git_libgit2_init();
 	auto t0 = std::chrono::system_clock::now();
 	while (git_repository_open(&repo, U8strToU(repoPath)) != GIT_OK)
 	{
-		if (std::chrono::system_clock::now() - t0 > std::chrono::seconds(GIT_TIMEOUT)) */
+		if (std::chrono::system_clock::now() - t0 > std::chrono::seconds(GIT_TIMEOUT))
 		{
 			printErrorAndShutdown("git_repository_open timeout!");
 		}
@@ -348,6 +413,34 @@ bool GIT::isRepoExist(std::u8string repoPath)
 	git_libgit2_shutdown();
 	return ret;
 }
+
+GIT* GIT::cloneFromRemote(std::u8string remoteRepoPath, std::u8string localRepoPath, std::u8string userName, std::u8string userEmail)
+{
+
+	git_libgit2_init();
+
+	const char* url = U8strToU(remoteRepoPath);
+	const char* local_path = U8strToU(localRepoPath);
+	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
+
+	// Clone the repository
+	git_repository* repo = nullptr;
+	if (git_clone(&repo, url, local_path, &clone_opts) < GIT_OK)
+	{
+		const git_error* err = git_error_last();
+		std::cerr << "Failed to git_clone: " << (err && err->message ? utf8ToLocal(err->message) : "Unknown error") << std::endl;
+		return nullptr;
+	}
+
+	std::cout << "Repository cloned to: " << utf8ToLocal(local_path) << std::endl;
+
+	// Clean up
+	git_repository_free(repo);
+	git_libgit2_shutdown();
+
+	return new GIT(localRepoPath, userName, userEmail);
+}
+
 
 std::string GIT::getCurrentBranch()
 {

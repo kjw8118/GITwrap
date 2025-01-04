@@ -68,10 +68,10 @@ private:
 	};
 
 	void printErrorAndShutdown(std::u8string text=u8"");
-	void printErrorAndShutdown(std::string text_local = "") { printErrorAndShutdown(u8localToUtf8(text_local)); };
+	void printErrorAndShutdown(std::string text_local8bit = "") { printErrorAndShutdown(u8localToUtf8(text_local8bit)); };
 	
 	void getLastError(std::u8string info = u8"");
-	void getLastError(std::string info_local = "") { getLastError(u8localToUtf8(info_local)); };
+	void getLastError(std::string info_local8bit = "") { getLastError(u8localToUtf8(info_local8bit)); };
 
 	
 	FileStatus collectRepoStatus();	
@@ -151,8 +151,8 @@ private:
 
 	};
 	
-		
-	void u8commitCurrentStage(std::u8string commit_message);
+	void u8gitAdd(std::u8string filePath) { return stagingFiles({ U8strToUstr(filePath) }); };
+	void u8gitCommit(std::u8string message);
 
 	std::u8string u8getContentsAtCommit(std::string filePath_u8, std::string commit_oid_str_u8);
 	std::u8string u8getContentsAtCommit(std::u8string filePath, std::u8string commit_oid_str) { return u8getContentsAtCommit(U8strToUstr(filePath), U8strToUstr(commit_oid_str)); };	
@@ -165,19 +165,34 @@ private:
 	void u8deleteBranch(const std::u8string& branch_name);
 
 
-public:		
+public:			
 	GIT(std::u8string repoPath, std::u8string userName = u8"", std::u8string userEmail = u8"");
-	GIT(std::string repoPath_local, std::string userName_local = "", std::string userEmail_local = "") : GIT(u8localToUtf8(repoPath_local), u8localToUtf8(userName_local), u8localToUtf8(userEmail_local)) {};
+	GIT(std::u8string repoPath, std::pair<std::u8string, std::u8string> user = { u8"", u8"" })
+		:GIT(repoPath, user.first, user.second) {};
+	GIT(std::string repoPath_local8bit, std::string userName_local8bit = "", std::string userEmail_local8bit = "")
+		: GIT(u8localToUtf8(repoPath_local8bit), u8localToUtf8(userName_local8bit), u8localToUtf8(userEmail_local8bit)) {};
+	GIT(std::string repoPath_local8bit, std::pair<std::string, std::string> user_local8bit = { "", "" })
+		: GIT(u8localToUtf8(repoPath_local8bit), u8localToUtf8(user_local8bit.first), u8localToUtf8(user_local8bit.second)) {};
+
 	static bool isRepoExist(std::u8string repoPath); 
-	static bool isRepoExist(std::string repoPath_local) { return isRepoExist(u8localToUtf8(repoPath_local)); };
+	static bool isRepoExist(std::string repoPath_local8bit)
+	{ return isRepoExist(u8localToUtf8(repoPath_local8bit)); };
+
+	static GIT* cloneFromRemote(std::u8string remoteRepoPath, std::u8string localRepoPath, std::u8string userName = u8"", std::u8string userEmail = u8"");
+	static GIT* cloneFromRemote(std::u8string remoteRepoPath, std::u8string localRepoPath, std::pair<std::u8string, std::u8string> user = { u8"", u8"" }) 
+	{ return cloneFromRemote(remoteRepoPath, localRepoPath, user.first, user.second); };
+	static GIT* cloneFromRemote(std::string remoteRepoPath_local8bit, std::string localRepoPath_local8bit, std::string userName_local8bit = "", std::string userEmail_local8bit = "")
+	{ return cloneFromRemote(u8localToUtf8(remoteRepoPath_local8bit), u8localToUtf8(localRepoPath_local8bit), u8localToUtf8(userName_local8bit), u8localToUtf8(userEmail_local8bit)); };
+	static GIT* cloneFromRemote(std::string remoteRepoPath_local8bit, std::string localRepoPath_local8bit, std::pair<std::string, std::string> user_local8bit = { "", "" })
+	{ return cloneFromRemote(remoteRepoPath_local8bit, localRepoPath_local8bit, user_local8bit.first, user_local8bit.second); };
 
 	void clearGitIgnore();
 	void appendGitIgnore(const std::vector<std::u8string>& ignorePatterns);
-	void appendGitIgnore(const std::vector<std::string>& ignorePatterns_local);
+	void appendGitIgnore(const std::vector<std::string>& ignorePatterns_local8bit);
 	
 	void stagingAll();
 	void stagingFiles(std::vector<std::u8string> filesPath);
-	void stagingFiles(std::vector<std::string> filesPath_local);
+	void stagingFiles(std::vector<std::string> filesPath_local8bit);
 	void stagingAllUntrackedFiles();
 	void stagingAllModifiedFiles();
 	void stagingAllDeletedFiles();
@@ -189,10 +204,18 @@ public:
 	std::vector<DiffResult> gitDiffHead();
 	std::vector<Commit> gitLog();
 	
-	std::string getContentsAtCommit(std::string filePath_local, std::string commit_oid_str_local) { return u8utf8ToLocal(u8getContentsAtCommit(u8localToUtf8(filePath_local), u8localToUtf8(commit_oid_str_local))); };	
-	std::string getContentsAtBranch(std::string filePath_local, std::string branch_name_local) { return u8utf8ToLocal(u8getContentsAtBranch(u8localToUtf8(filePath_local), u8localToUtf8(branch_name_local))); };
 
-	void commitCurrentStage(std::string commit_message_local) { return u8commitCurrentStage(u8localToUtf8(commit_message_local)); };
+	void gitAdd(std::string filePath_local8bit) { return u8gitAdd(u8localToUtf8(filePath_local8bit)); };
+
+	void gitCommit(std::string message_local8bit) { return u8gitCommit(u8localToUtf8(message_local8bit)); };
+
+	void gitPull();
+	void gitPush();
+
+	std::string getContentsAtCommit(std::string filePath_local8bit, std::string commit_oid_str_local8bit) { return u8utf8ToLocal(u8getContentsAtCommit(u8localToUtf8(filePath_local8bit), u8localToUtf8(commit_oid_str_local8bit))); };	
+	std::string getContentsAtBranch(std::string filePath_local8bit, std::string branch_name_local8bit) { return u8utf8ToLocal(u8getContentsAtBranch(u8localToUtf8(filePath_local8bit), u8localToUtf8(branch_name_local8bit))); };
+
+	
 
 	std::string printRepoStatus(const FileStatus& fileStatus) { return u8utf8ToLocal(u8printRepoStatus(fileStatus)); };
 
@@ -201,10 +224,10 @@ public:
 	std::string getCurrentStatus();
 
 
-	void createBranch(const std::string& branch_name_local) { return u8createBranch(u8localToUtf8(branch_name_local)); };
-	void switchBranch(const std::string& branch_name_local) { return u8switchBranch(u8localToUtf8(branch_name_local)); };
-	void mergeBranch(const std::string& source_branch_local) { return u8mergeBranch(u8localToUtf8(source_branch_local)); };
-	void deleteBranch(const std::string& branch_name_local) { return u8deleteBranch(u8localToUtf8(branch_name_local)); };
+	void createBranch(const std::string& branch_name_local8bit) { return u8createBranch(u8localToUtf8(branch_name_local8bit)); };
+	void switchBranch(const std::string& branch_name_local8bit) { return u8switchBranch(u8localToUtf8(branch_name_local8bit)); };
+	void mergeBranch(const std::string& source_branch_local8bit) { return u8mergeBranch(u8localToUtf8(source_branch_local8bit)); };
+	void deleteBranch(const std::string& branch_name_local8bit) { return u8deleteBranch(u8localToUtf8(branch_name_local8bit)); };
 
 	std::vector<std::string> getBranchList(git_branch_t branch_type_enum);
 	std::vector<std::string> getLocalBranchList();
