@@ -167,11 +167,11 @@ private:
 
 public:			
 	GIT(std::u8string repoPath, std::u8string userName = u8"", std::u8string userEmail = u8"");
-	GIT(std::u8string repoPath, std::pair<std::u8string, std::u8string> user = { u8"", u8"" })
+	GIT(std::u8string repoPath, std::pair<std::u8string, std::u8string> user)
 		:GIT(repoPath, user.first, user.second) {};
 	GIT(std::string repoPath_local8bit, std::string userName_local8bit = "", std::string userEmail_local8bit = "")
 		: GIT(u8localToUtf8(repoPath_local8bit), u8localToUtf8(userName_local8bit), u8localToUtf8(userEmail_local8bit)) {};
-	GIT(std::string repoPath_local8bit, std::pair<std::string, std::string> user_local8bit = { "", "" })
+	GIT(std::string repoPath_local8bit, std::pair<std::string, std::string> user_local8bit)
 		: GIT(u8localToUtf8(repoPath_local8bit), u8localToUtf8(user_local8bit.first), u8localToUtf8(user_local8bit.second)) {};
 
 	static bool isRepoExist(std::u8string repoPath); 
@@ -180,11 +180,11 @@ public:
 
 
 	static GIT* cloneFromRemote(std::u8string remoteRepoPath, std::u8string localRepoPath, std::u8string userName = u8"", std::u8string userEmail = u8"");
-	static GIT* cloneFromRemote(std::u8string remoteRepoPath, std::u8string localRepoPath, std::pair<std::u8string, std::u8string> user = { u8"", u8"" }) 
+	static GIT* cloneFromRemote(std::u8string remoteRepoPath, std::u8string localRepoPath, std::pair<std::u8string, std::u8string> user) 
 	{ return cloneFromRemote(remoteRepoPath, localRepoPath, user.first, user.second); };
 	static GIT* cloneFromRemote(std::string remoteRepoPath_local8bit, std::string localRepoPath_local8bit, std::string userName_local8bit = "", std::string userEmail_local8bit = "")
 	{ return cloneFromRemote(u8localToUtf8(remoteRepoPath_local8bit), u8localToUtf8(localRepoPath_local8bit), u8localToUtf8(userName_local8bit), u8localToUtf8(userEmail_local8bit)); };
-	static GIT* cloneFromRemote(std::string remoteRepoPath_local8bit, std::string localRepoPath_local8bit, std::pair<std::string, std::string> user_local8bit = { "", "" })
+	static GIT* cloneFromRemote(std::string remoteRepoPath_local8bit, std::string localRepoPath_local8bit, std::pair<std::string, std::string> user_local8bit)
 	{ return cloneFromRemote(remoteRepoPath_local8bit, localRepoPath_local8bit, user_local8bit.first, user_local8bit.second); };
 
 	void clearGitIgnore();
