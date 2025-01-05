@@ -277,7 +277,7 @@ void GIT::u8gitCommit(std::u8string commit_message)
 			getLastError("git_commit_lookup failed: ");
 	}
 	git_oid commit_oid;
-	if (git_commit_create_v(
+	if (git_commit_create(
 		&commit_oid,
 		repo,
 		"HEAD",
@@ -316,8 +316,13 @@ void GIT::gitPull()
 	git_object* head_obj = nullptr;
 	git_reference_peel(&head_obj, head_ref, GIT_OBJECT_COMMIT);
 
+	std::string remote_branch_ref = std::string("refs/remotes/origin/master");
+	git_reference* remote_ref = nullptr;
+	if (git_reference_lookup(&remote_ref, repo, remote_branch_ref.c_str()) < GIT_OK)
+		getLastError("Failed to git_reference_lookup: ");
+		
 	git_annotated_commit* annotated_commit = nullptr;
-	git_annotated_commit_from_ref(&annotated_commit, repo, head_ref);
+	git_annotated_commit_from_ref(&annotated_commit, repo, remote_ref);
 
 	git_merge_analysis_t analysis;
 	git_merge_preference_t preference;
@@ -327,17 +332,26 @@ void GIT::gitPull()
 	if (analysis & GIT_MERGE_ANALYSIS_FASTFORWARD) {
 		git_reference* new_ref = nullptr;
 		std::cout << "Fast-forwarding..." << std::endl;
-		if (git_reference_set_target(&new_ref, head_ref, git_object_id(head_obj), "Fast-forward merge") < GIT_OK)
+		if (git_reference_set_target(&new_ref, head_ref, git_annotated_commit_id(annotated_commit), "Fast-forward merge") < GIT_OK)
 			getLastError("Failed to git_reference_set_target: ");
+		git_checkout_options checkout_opts = GIT_CHECKOUT_OPTIONS_INIT;
+		checkout_opts.checkout_strategy = GIT_CHECKOUT_FORCE; // 강제 덮어쓰기 옵션
+		if (git_checkout_head(repo, &checkout_opts) < GIT_OK)
+			getLastError("Failed to git_checkout_head: ");
 		git_reference_free(new_ref);
 	}
-	else {
+	else if (analysis & GIT_MERGE_ANALYSIS_NORMAL) {
 		std::cerr << "Non-fast-forward merge required, which is not implemented in this example." << std::endl;
 		exit(EXIT_FAILURE);
+	}
+	else
+	{
+		std::cout << "No merge required. Branch is up-to-date." << std::endl;
 	}
 
 	git_remote_free(remote);
 	git_reference_free(head_ref);
+	git_reference_free(remote_ref);
 	git_object_free(head_obj);
 	git_annotated_commit_free(annotated_commit);
 }
@@ -352,7 +366,7 @@ void GIT::gitPush()
 	git_push_options push_opts = GIT_PUSH_OPTIONS_INIT;
 
 	git_strarray refspecs;
-	const char* specs[] = { "refs/heads/main" };
+	const char* specs[] = { "refs/heads/master" };
 	refspecs.strings = const_cast<char**>(specs);
 	refspecs.count = 1;
 

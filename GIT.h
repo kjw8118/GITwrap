@@ -233,10 +233,7 @@ public:
 	std::vector<std::string> getBranchList(git_branch_t branch_type_enum);
 	std::vector<std::string> getLocalBranchList();
 	std::vector<std::string> getRemoteBranchList();
-	std::vector<std::string> getAllBranchList();
-
-	
-	
+	std::vector<std::string> getAllBranchList();	
 	
 
 	~GIT();
