@@ -84,7 +84,7 @@ int main()
     
     auto repoPath = std::string("C:\\Users\\Jinwon\\source\\repos\\GIT\\repoEx\\diffMem");
     auto git = new GIT(repoPath);
-    auto diffResults = git->gitDiffMemory("test.txt", "Hello world\nThis is new line\n");
+    auto diffResults = git->gitDiffHeadToMemory("test.txt", "헬로월드\n");
     git->printDiffResults(diffResults);
     
     //auto git = new GIT("./repo", "Jinwon", "kjw8118@gmail.com");

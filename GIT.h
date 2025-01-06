@@ -209,7 +209,7 @@ public:
 	void printDiffResults(std::vector<DiffResult>& diffResults);
 	std::vector<DiffResult> gitDiff();
 	std::vector<DiffResult> gitDiffHead();	
-	std::vector<DiffResult> gitDiffHeadToMemory(std::string filePath_local8bit, std::string memory_lcoal8bit) { return u8gitDiffHeadToMemory(u8localToUtf8(filePath_local8bit), u8localToUtf8(memory_lcoal8bit)); };
+	std::vector<DiffResult> gitDiffHeadToMemory(std::string filePath_local8bit, std::string memory_lcoal8bit) { return u8gitDiffHeadToMemory(u8localToUtf8(filePath_local8bit), UstrToU8str(memory_lcoal8bit)); };
 	std::vector<Commit> gitLog();
 	
 
