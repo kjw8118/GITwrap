@@ -37,12 +37,7 @@ public:
 	static std::string utf8ToLocal(const std::string& utf8Str);
 	static std::string u8utf8ToLocal(const std::u8string& utf8Str);
 
-private:
-	std::u8string repoPath;
-	git_repository* repo = nullptr;
-	std::u8string userName = u8"";
-	std::u8string userEmail = u8"";
-
+	
 	struct NotStaged
 	{
 		std::vector<std::u8string> newFiles;
@@ -66,21 +61,6 @@ private:
 		Staged staged;
 		
 	};
-
-	void printErrorAndShutdown(std::u8string text=u8"");
-	void printErrorAndShutdown(std::string text_local8bit = "") { printErrorAndShutdown(u8localToUtf8(text_local8bit)); };
-	
-	void getLastError(std::u8string info = u8"");
-	void getLastError(std::string info_local8bit = "") { getLastError(u8localToUtf8(info_local8bit)); };
-
-	
-	FileStatus collectRepoStatus();	
-
-	std::vector<std::string> ignorePreset = { ".vs", "x64" };
-
-	std::u8string u8printRepoStatus(const FileStatus& fileStatus);
-
-
 
 	class DiffLine
 	{
@@ -126,10 +106,6 @@ private:
 		int current_new_line_index = -1;
 		int current_old_line_index = -1;
 	};
-	static git_diff_file_cb git_diff_file_callback;
-	static git_diff_hunk_cb git_diff_hunk_callback;
-	static git_diff_line_cb git_diff_line_callback;
-
 	
 	struct Author
 	{
@@ -150,6 +126,36 @@ private:
 		Commit(git_oid oid, std::string oid_str_u8, Author author, std::string message_u8) : oid(oid), oid_str(UstrToU8str(oid_str_u8)), author(author), message(UstrToU8str(message_u8)) {};
 
 	};
+
+	static git_diff_file_cb git_diff_file_callback;
+	static git_diff_hunk_cb git_diff_hunk_callback;
+	static git_diff_line_cb git_diff_line_callback;
+
+private:
+	std::u8string repoPath;
+	git_repository* repo = nullptr;
+	std::u8string userName = u8"";
+	std::u8string userEmail = u8"";
+
+
+	void printErrorAndShutdown(std::u8string text=u8"");
+	void printErrorAndShutdown(std::string text_local8bit = "") { printErrorAndShutdown(u8localToUtf8(text_local8bit)); };
+	
+	void getLastError(std::u8string info = u8"");
+	void getLastError(std::string info_local8bit = "") { getLastError(u8localToUtf8(info_local8bit)); };
+
+
+	std::vector<DiffResult> u8gitDiffHeadToMemory(std::u8string filePath, std::u8string memory);
+
+	FileStatus collectRepoStatus();	
+
+	std::vector<std::string> ignorePreset = { ".vs", "x64" };
+
+	std::u8string u8printRepoStatus(const FileStatus& fileStatus);
+
+
+
+	
 	
 	void u8gitAdd(std::u8string filePath) { return stagingFiles({ U8strToUstr(filePath) }); };
 	void u8gitCommit(std::u8string message);
@@ -202,7 +208,8 @@ public:
 		
 	void printDiffResults(std::vector<DiffResult>& diffResults);
 	std::vector<DiffResult> gitDiff();
-	std::vector<DiffResult> gitDiffHead();
+	std::vector<DiffResult> gitDiffHead();	
+	std::vector<DiffResult> gitDiffHeadToMemory(std::string filePath_local8bit, std::string memory_lcoal8bit) { return u8gitDiffHeadToMemory(u8localToUtf8(filePath_local8bit), u8localToUtf8(memory_lcoal8bit)); };
 	std::vector<Commit> gitLog();
 	
 

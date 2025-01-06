@@ -760,7 +760,29 @@ std::vector<GIT::DiffResult> GIT::gitDiffHead() /* git diff HEAD */
 
 	return diffResults;
 }
+std::vector<GIT::DiffResult> GIT::u8gitDiffHeadToMemory(std::u8string filePath, std::u8string memory)
+{
+	git_blob* file_blob = nullptr;
+	git_blob* memory_blob = nullptr;	
+	git_diff_options diff_opts = GIT_DIFF_OPTIONS_INIT;
 
+	git_oid file_oid;
+	if (git_blob_create_fromworkdir(&file_oid, repo, U8strToU(filePath)) < GIT_OK)
+		getLastError("Failed to git_blob_create_fromworkdir: ");
+
+	if (git_blob_lookup(&file_blob, repo, &file_oid) < GIT_OK)
+		getLastError("Failed to git_blob_lookup: ");
+	
+	std::vector<GIT::DiffResult> diffResults;	
+	if (git_diff_blob_to_buffer(file_blob, nullptr, U8strToU(memory), strlen(U8strToU(memory)), nullptr, &diff_opts,
+		git_diff_file_callback, nullptr, git_diff_hunk_callback, git_diff_line_callback, &diffResults) < GIT_OK)
+		getLastError("Failed to git_diff_blob_to_buffer: ");
+
+	git_blob_free(file_blob);
+	git_blob_free(memory_blob);
+
+	return diffResults;
+}
 std::vector<GIT::Commit> GIT::gitLog()
 {
 	git_revwalk* walker = nullptr;
