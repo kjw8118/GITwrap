@@ -705,13 +705,13 @@ void GIT::printDiffResults(std::vector<GIT::DiffResult>& diffResults)
 				switch (diffLine.type)
 				{
 				case DiffLine::LINETYPE::ADDED:
-					std::cout << "+" + u8utf8ToLocal(diffLine.line);
+					std::cout << "+" + u8utf8ToLocal(diffLine.line) << std::endl;
 					break;
 				case DiffLine::LINETYPE::DELETED:
-					std::cout << "-" + u8utf8ToLocal(diffLine.line);
+					std::cout << "-" + u8utf8ToLocal(diffLine.line) << std::endl;
 					break;
 				case DiffLine::LINETYPE::CONTEXT:
-					std::cout << " " + u8utf8ToLocal(diffLine.line);
+					std::cout << " " + u8utf8ToLocal(diffLine.line) << std::endl;
 					break;
 				}
 			}
