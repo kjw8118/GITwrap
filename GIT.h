@@ -75,10 +75,10 @@ public:
 		int newLineNum;
 		int oldLineNum;
 		std::u8string line;
-		DiffLine(int type, int newLineNum, int oldLineNum, std::u8string line) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(line) {};
-		DiffLine(int type, int newLineNum, int oldLineNum, std::string line_u8) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(UstrToU8str(line_u8)) {};
-		DiffLine(int type, int newLineNum, int oldLineNum, const char8_t* content, size_t content_len) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(std::u8string(content, content_len)) {};
-		DiffLine(int type, int newLineNum, int oldLineNum, const char* content_u8, size_t content_len) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(UstrToU8str(std::string(content_u8, content_len))) {};
+		DiffLine(int type, int newLineNum, int oldLineNum, std::u8string line) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(line) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
+		DiffLine(int type, int newLineNum, int oldLineNum, std::string line_u8) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(UstrToU8str(line_u8)) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
+		DiffLine(int type, int newLineNum, int oldLineNum, const char8_t* content, size_t content_len) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(std::u8string(content, content_len)) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
+		DiffLine(int type, int newLineNum, int oldLineNum, const char* content_u8, size_t content_len) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(UstrToU8str(std::string(content_u8, content_len))) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
 		static DiffLine ContextLine(int newLineNum, int oldLineNum, std::u8string line) { return DiffLine(LINETYPE::CONTEXT, newLineNum, oldLineNum, line); };
 		static DiffLine ContextLine(int newLineNum, int oldLineNum, std::string line_u8) { return DiffLine(LINETYPE::CONTEXT, newLineNum, oldLineNum, line_u8); };
 		static DiffLine ContextLine(int newLineNum, int oldLineNum, const char8_t* content, size_t content_len) { return DiffLine(LINETYPE::CONTEXT, newLineNum, oldLineNum, content, content_len); };
