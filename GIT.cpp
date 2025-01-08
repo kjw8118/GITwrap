@@ -299,6 +299,57 @@ void GIT::u8gitCommit(std::u8string commit_message)
 	
 }
 
+std::u8string GIT::gitShowFromCommit(std::u8string filePath, std::u8string commit_id)
+{
+	git_oid oid;
+	git_commit* commit = nullptr;
+	git_tree* tree = nullptr;
+	git_tree_entry* entry = nullptr;
+	git_blob* blob = nullptr;
+	std::u8string file_content = u8"";
+
+	// 1. 커밋 OID 가져오기
+	if (git_oid_fromstr(&oid, U8strToU(commit_id)) < GIT_OK)
+		getLastError("Failed to git_oid_fromstr: ");
+
+	// 2. 커밋 객체 가져오기
+	if (git_commit_lookup(&commit, repo, &oid) < GIT_OK)
+		getLastError("Failed to git_commit_lookup: ");
+
+	// 3. 커밋에서 Tree 객체 가져오기
+	if (git_commit_tree(&tree, commit) < GIT_OK)
+		getLastError("Failed to git_commit_tree: ");
+
+	// 4. Tree에서 파일 경로로 엔트리 검색
+	switch(git_tree_entry_bypath(&entry, tree, U8strToU(filePath)))
+	{
+	case GIT_OK:
+	{
+		// 5. Tree 엔트리에서 Blob 가져오기
+		if (git_blob_lookup(&blob, repo, git_tree_entry_id(entry)) < GIT_OK)
+			getLastError("Failed to git_blob_lookup: ");
+
+		// 6. Blob 내용 읽기
+		const void* content = git_blob_rawcontent(blob);
+		size_t content_len = git_blob_rawsize(blob);
+		file_content.assign(static_cast<const char8_t*>(content), content_len);
+		break;
+	}
+	default:
+		getLastError("Failed to git_tree_entry_bypath: ");
+		break;
+
+	}
+
+	// 리소스 정리
+	git_blob_free(blob);
+	git_tree_entry_free(entry);
+	git_tree_free(tree);
+	git_commit_free(commit);
+
+	return file_content;
+}
+
 void GIT::gitPull()
 {
 	git_remote* remote = nullptr;
@@ -599,31 +650,32 @@ std::vector<std::string> GIT::getAllBranchList()
 
 git_diff_file_cb GIT::git_diff_file_callback = [](const git_diff_delta* delta, float progress, void* payload)->int
 {
-	auto diffResults = (std::vector<GIT::DiffResult>*)payload;
-	GIT::DiffResult diffResult;
+	auto diffResults = (std::vector<GIT::u8DiffResult>*)payload;
+	GIT::u8DiffResult diffResult;
 	diffResult.filePath = UToU8str(delta->new_file.path);
 	diffResults->push_back(diffResult);
 
 	/* std::cout << "git_diff_file_callback " + std::string(delta->new_file.path) << std::endl; */
 	return 0;
 };
+
 git_diff_hunk_cb GIT::git_diff_hunk_callback = [](const git_diff_delta* delta, const git_diff_hunk* hunk, void* payload)->int
 {
-	auto diffResults = (std::vector<GIT::DiffResult>*)payload;
+	auto diffResults = (std::vector<GIT::u8DiffResult>*)payload;
 	if (diffResults->empty())
 	{
 		/* std::cout << "git_diff_hunk_callback diffResults->empty()" << std::endl; */
 		return -1;
 	}
 
-	GIT::DiffResult* diffResult = &diffResults->back();
+	GIT::u8DiffResult* diffResult = &diffResults->back();
 	if (diffResult->filePath != UToU8str(delta->new_file.path))
 	{
 		/* std::cout << "git_diff_hunk_callback diffResult->filePath != std::string(delta->new_file.path)" << std::endl; */
 		return -1;
 	}
 
-	DiffHunk diffHunk;
+	u8DiffHunk diffHunk;
 	diffHunk.hunk = *hunk;
 	diffResult->diffHunks.push_back(diffHunk);
 	diffResult->current_new_line_index = hunk->new_start;
@@ -632,16 +684,17 @@ git_diff_hunk_cb GIT::git_diff_hunk_callback = [](const git_diff_delta* delta, c
 	/* std::cout << "git_diff_hunk_callback @@ -" << hunk->old_start << "," << hunk->old_lines << " +" << hunk->new_start << "," << hunk->new_lines << " @@" << std::endl; */
 	return 0;
 };
+
 git_diff_line_cb GIT::git_diff_line_callback = [](const git_diff_delta* delta, const git_diff_hunk* hunk, const git_diff_line* line, void* payload)->int
 {
-	auto diffResults = (std::vector<GIT::DiffResult>*)payload;
+	auto diffResults = (std::vector<GIT::u8DiffResult>*)payload;
 	if (diffResults->empty())
 	{
 		/* std::cout << "git_diff_line_callback diffResults->empty()" << std::endl; */
 		return -1;
 	}
 
-	GIT::DiffResult* diffResult = &diffResults->back();
+	GIT::u8DiffResult* diffResult = &diffResults->back();
 	if (diffResult->filePath != UToU8str(delta->new_file.path))
 	{
 		/* std::cout << "git_diff_line_callback diffResult->filePath != std::string(delta->new_file.path)" << std::endl; */
@@ -654,7 +707,7 @@ git_diff_line_cb GIT::git_diff_line_callback = [](const git_diff_delta* delta, c
 		return -1;
 	}
 
-	DiffHunk* diffHunk = &diffResult->diffHunks.back();
+	u8DiffHunk* diffHunk = &diffResult->diffHunks.back();
 	if ((diffHunk->hunk.new_start > diffResult->current_new_line_index) || ((diffHunk->hunk.new_start + diffHunk->hunk.new_lines) < diffResult->current_new_line_index)) /* exactly start + lines - 1 < index */
 	{
 		/* std::cout << "git_diff_line_callback " << diffHunk->hunk.new_start << ", " << diffResult->current_new_line_index << ", " << diffHunk->hunk.new_start + diffHunk->hunk.new_lines - 1 << " (diffHunk->hunk.new_start > diffResult->current_new_line_index) || ((diffHunk->hunk.new_start + diffHunk->hunk.new_lines - 1) < diffResult->current_new_line_index)" << std::endl; */
@@ -671,17 +724,17 @@ git_diff_line_cb GIT::git_diff_line_callback = [](const git_diff_delta* delta, c
 	switch (line->origin)
 	{
 	case GIT_DIFF_LINE_ADDITION:
-		diffHunk->diffLines.push_back(DiffLine::AddedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
+		diffHunk->diffLines.push_back(u8DiffLine::AddedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
 		diffHunk->rawLines.push_back(u8"+" + UstrToU8str(std::string(line->content, line->content_len)));
 		diffResult->current_new_line_index++;
 		break;
 	case GIT_DIFF_LINE_DELETION:
-		diffHunk->diffLines.push_back(DiffLine::DeletedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
+		diffHunk->diffLines.push_back(u8DiffLine::DeletedLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
 		diffHunk->rawLines.push_back(u8"-" + UstrToU8str(std::string(line->content, line->content_len)));
 		diffResult->current_old_line_index++;
 		break;
 	case GIT_DIFF_LINE_CONTEXT:
-		diffHunk->diffLines.push_back(DiffLine::ContextLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
+		diffHunk->diffLines.push_back(u8DiffLine::ContextLine(diffResult->current_new_line_index, diffResult->current_old_line_index, line->content, line->content_len));
 		diffHunk->rawLines.push_back(u8" " + UstrToU8str(std::string(line->content, line->content_len)));
 		diffResult->current_new_line_index++;
 		diffResult->current_old_line_index++;
@@ -697,21 +750,21 @@ void GIT::printDiffResults(std::vector<GIT::DiffResult>& diffResults)
 {
 	for (auto diffResult : diffResults)
 	{
-		std::cout << "\nFile: " << u8utf8ToLocal(diffResult.filePath) << std::endl;
+		std::cout << "\nFile: " << (diffResult.filePath) << std::endl;
 		for (auto diffHunk : diffResult.diffHunks)
 		{
 			for (auto diffLine : diffHunk.diffLines)
 			{
 				switch (diffLine.type)
 				{
-				case DiffLine::LINETYPE::ADDED:
-					std::cout << "+" + u8utf8ToLocal(diffLine.line) << std::endl;
+				case u8DiffLine::LINETYPE::ADDED:
+					std::cout << "+" + (diffLine.line) << std::endl;
 					break;
-				case DiffLine::LINETYPE::DELETED:
-					std::cout << "-" + u8utf8ToLocal(diffLine.line) << std::endl;
+				case u8DiffLine::LINETYPE::DELETED:
+					std::cout << "-" + (diffLine.line) << std::endl;
 					break;
-				case DiffLine::LINETYPE::CONTEXT:
-					std::cout << " " + u8utf8ToLocal(diffLine.line) << std::endl;
+				case u8DiffLine::LINETYPE::CONTEXT:
+					std::cout << " " + (diffLine.line) << std::endl;
 					break;
 				}
 			}
@@ -719,7 +772,8 @@ void GIT::printDiffResults(std::vector<GIT::DiffResult>& diffResults)
 
 	}
 }
-std::vector<GIT::DiffResult> GIT::gitDiff() /* git diff */
+
+std::vector<GIT::u8DiffResult> GIT::u8gitDiff() /* git diff */
 {
 
 	git_diff* diff = nullptr;
@@ -728,7 +782,7 @@ std::vector<GIT::DiffResult> GIT::gitDiff() /* git diff */
 	if (git_diff_index_to_workdir(&diff, repo, nullptr, &opts) < 0)
 		getLastError("git_diff_index_to_workdir failed: ");
 
-	std::vector<GIT::DiffResult> diffResults;
+	std::vector<GIT::u8DiffResult> diffResults;
 	if (git_diff_foreach(diff, git_diff_file_callback, nullptr, git_diff_hunk_callback, git_diff_line_callback, &diffResults) < 0)
 		getLastError("git_diff_foreach failed: ");
 
@@ -737,7 +791,7 @@ std::vector<GIT::DiffResult> GIT::gitDiff() /* git diff */
 	return diffResults;
 }
 
-std::vector<GIT::DiffResult> GIT::gitDiffHead() /* git diff HEAD */
+std::vector<GIT::u8DiffResult> GIT::u8gitDiffHead() /* git diff HEAD */
 {
 	git_object* head_tree_obj = nullptr;
 	if (git_revparse_single(&head_tree_obj, repo, "HEAD^{tree}") < 0)
@@ -751,7 +805,7 @@ std::vector<GIT::DiffResult> GIT::gitDiffHead() /* git diff HEAD */
 	if (git_diff_tree_to_workdir_with_index(&diff, repo, head_tree, &opts) < 0)
 		getLastError("git_diff_tree_to_workdir_with_index failed: ");
 
-	std::vector<GIT::DiffResult> diffResults;
+	std::vector<GIT::u8DiffResult> diffResults;
 	if (git_diff_foreach(diff, git_diff_file_callback, nullptr, git_diff_hunk_callback, git_diff_line_callback, &diffResults) < 0)
 		getLastError("git_diff_foreach failed: ");
 
@@ -760,7 +814,8 @@ std::vector<GIT::DiffResult> GIT::gitDiffHead() /* git diff HEAD */
 
 	return diffResults;
 }
-std::vector<GIT::DiffResult> GIT::u8gitDiffHeadToMemory(std::u8string filePath, std::u8string memory)
+
+std::vector<GIT::u8DiffResult> GIT::u8gitDiffHeadToMemory(std::u8string filePath, std::u8string memory)
 {
 	git_blob* file_blob = nullptr;
 	git_blob* memory_blob = nullptr;	
@@ -773,7 +828,7 @@ std::vector<GIT::DiffResult> GIT::u8gitDiffHeadToMemory(std::u8string filePath, 
 	if (git_blob_lookup(&file_blob, repo, &file_oid) < GIT_OK)
 		getLastError("Failed to git_blob_lookup: ");
 	
-	std::vector<GIT::DiffResult> diffResults;	
+	std::vector<GIT::u8DiffResult> diffResults;	
 	if (git_diff_blob_to_buffer(file_blob, nullptr, U8strToU(memory), strlen(U8strToU(memory)), nullptr, &diff_opts,
 		git_diff_file_callback, nullptr, git_diff_hunk_callback, git_diff_line_callback, &diffResults) < GIT_OK)
 		getLastError("Failed to git_diff_blob_to_buffer: ");
@@ -783,7 +838,38 @@ std::vector<GIT::DiffResult> GIT::u8gitDiffHeadToMemory(std::u8string filePath, 
 
 	return diffResults;
 }
-std::vector<GIT::Commit> GIT::gitLog()
+
+std::vector<GIT::u8DiffResult> GIT::u8gitDiffWithCommit(std::u8string filePath, std::u8string commit_id)
+{
+	git_oid oid;
+	git_commit* commit = nullptr;
+	git_tree* commit_tree = nullptr;
+	git_diff* diff = nullptr;
+	
+	if (git_oid_fromstr(&oid, U8strToU(commit_id)) < GIT_OK)
+		getLastError("Failed to git_oid_fromstr: ");
+
+	if (git_commit_lookup(&commit, repo, &oid) < GIT_OK)
+		getLastError("Failed to git_commit_lookup: ");
+
+	if(git_commit_tree(&commit_tree, commit) < GIT_OK)
+		getLastError("Failed to git_commit_tree: ");
+
+	if(git_diff_tree_to_workdir_with_index(&diff, repo, commit_tree, nullptr) < GIT_OK)
+		getLastError("Failed to git_diff_tree_to_workdir_with_index: ");
+
+	std::vector<GIT::u8DiffResult> diffResults;
+	if (git_diff_foreach(diff, git_diff_file_callback, nullptr, git_diff_hunk_callback, git_diff_line_callback, &diffResults) < 0)
+		getLastError("git_diff_foreach failed: ");
+
+	git_diff_free(diff);
+	git_tree_free(commit_tree);
+	git_commit_free(commit);
+
+	return diffResults;
+}
+
+std::vector<GIT::u8Commit> GIT::u8gitLog()
 {
 	git_revwalk* walker = nullptr;
 	if (git_revwalk_new(&walker, repo) < GIT_OK)
@@ -792,7 +878,7 @@ std::vector<GIT::Commit> GIT::gitLog()
 		getLastError("Failed to git_revwalk_sorting: ");
 	if (git_revwalk_push_head(walker) < GIT_OK)
 		getLastError("Failed to git_revwalk_push_head: ");
-	std::vector<GIT::Commit> commits;
+	std::vector<GIT::u8Commit> commits;
 	git_oid oid;
 	while (git_revwalk_next(&oid, walker) == GIT_OK)
 	{
@@ -806,7 +892,7 @@ std::vector<GIT::Commit> GIT::gitLog()
 		git_oid_tostr(oid_str, sizeof(oid_str), &oid);
 
 		/* store to commit history */
-		commits.emplace_back(oid, UToU8str(oid_str), Author(author->name, author->email, author->when), UToU8str(message));
+		commits.emplace_back(oid, UToU8str(oid_str), u8Author(author->name, author->email, author->when), UToU8str(message));
 
 		git_commit_free(commit);
 

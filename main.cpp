@@ -48,14 +48,14 @@ bool testForRemoteClone()
         auto remoteLog = remoteGit->gitLog();
         std::cout << "Remote Repo git log: " << std::endl;
         for (auto log : remoteLog)
-            std::cout << "\t" << GIT::u8utf8ToLocal(log.oid_str) << std::endl;
+            std::cout << "\t" << (log.oid_str) << std::endl;
     }
     if (localGit && false)
     {
         auto localLog = localGit->gitLog();
         std::cout << "Local Repo git log: " << std::endl;
         for (auto log : localLog)
-            std::cout << "\t" << GIT::u8utf8ToLocal(log.oid_str) << std::endl;
+            std::cout << "\t" << (log.oid_str) << std::endl;
     }
     auto copyRepoPath = std::string("C:\\Users\\Jinwon\\source\\repos\\GIT\\repoEx\\카피\\리포1");
     //if (!GIT::isRepoExist(copyRepoPath))
@@ -68,7 +68,7 @@ bool testForRemoteClone()
         auto copyLog = copyGit->gitLog();
         std::cout << "Copy Repo git log\t: ";
         if (!copyLog.empty())
-            std::cout << GIT::u8utf8ToLocal(copyLog.back().oid_str) << std::endl;
+            std::cout << (copyLog.back().oid_str) << std::endl;
     }
 
     return true;
@@ -77,7 +77,7 @@ bool testForRemoteClone()
 int main()
 {
     std::cout << "Hello World!\n";
-
+    testForRemoteClone();
     //auto git = new GIT("./repo1", "Jinwon", "kjw8118@gmail.com");
     //auto git1 = new GIT(u8"리포", u8"Jinwon", u8"kjw8118@gmail.com");
     //auto git2 = new GIT("리포", "Jinwon", "kjw8118@gmail.com");

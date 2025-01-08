@@ -30,6 +30,10 @@
 
 class GIT
 {
+private:
+
+	
+
 public:
 	static std::string localToUtf8(const std::string& localStr);
 	static std::u8string u8localToUtf8(const std::string& localStr);
@@ -61,8 +65,7 @@ public:
 		Staged staged;
 		
 	};
-
-	class DiffLine
+	class u8DiffLine
 	{
 	public:
 		enum LINETYPE
@@ -75,22 +78,80 @@ public:
 		int newLineNum;
 		int oldLineNum;
 		std::u8string line;
-		DiffLine(int type, int newLineNum, int oldLineNum, std::u8string line) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(line) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
-		DiffLine(int type, int newLineNum, int oldLineNum, std::string line_u8) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(UstrToU8str(line_u8)) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
-		DiffLine(int type, int newLineNum, int oldLineNum, const char8_t* content, size_t content_len) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(std::u8string(content, content_len)) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
-		DiffLine(int type, int newLineNum, int oldLineNum, const char* content_u8, size_t content_len) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(UstrToU8str(std::string(content_u8, content_len))) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
-		static DiffLine ContextLine(int newLineNum, int oldLineNum, std::u8string line) { return DiffLine(LINETYPE::CONTEXT, newLineNum, oldLineNum, line); };
-		static DiffLine ContextLine(int newLineNum, int oldLineNum, std::string line_u8) { return DiffLine(LINETYPE::CONTEXT, newLineNum, oldLineNum, line_u8); };
-		static DiffLine ContextLine(int newLineNum, int oldLineNum, const char8_t* content, size_t content_len) { return DiffLine(LINETYPE::CONTEXT, newLineNum, oldLineNum, content, content_len); };
-		static DiffLine ContextLine(int newLineNum, int oldLineNum, const char* content_u8, size_t content_len) { return DiffLine(LINETYPE::CONTEXT, newLineNum, oldLineNum, content_u8, content_len); };
-		static DiffLine AddedLine(int newLineNum, int oldLineNum, std::u8string line) { return DiffLine(LINETYPE::ADDED, newLineNum, oldLineNum, line); };
-		static DiffLine AddedLine(int newLineNum, int oldLineNum, std::string line_u8) { return DiffLine(LINETYPE::ADDED, newLineNum, oldLineNum, line_u8); };
-		static DiffLine AddedLine(int newLineNum, int oldLineNum, const char8_t* content, size_t content_len) { return DiffLine(LINETYPE::ADDED, newLineNum, oldLineNum, content, content_len); };
-		static DiffLine AddedLine(int newLineNum, int oldLineNum, const char* content_u8, size_t content_len) { return DiffLine(LINETYPE::ADDED, newLineNum, oldLineNum, content_u8, content_len); };
-		static DiffLine DeletedLine(int newLineNum, int oldLineNum, std::u8string line) { return DiffLine(LINETYPE::DELETED, newLineNum, oldLineNum, line); };
-		static DiffLine DeletedLine(int newLineNum, int oldLineNum, std::string line_u8) { return DiffLine(LINETYPE::DELETED, newLineNum, oldLineNum, line_u8); };
-		static DiffLine DeletedLine(int newLineNum, int oldLineNum, const char8_t* content, size_t content_len) { return DiffLine(LINETYPE::DELETED, newLineNum, oldLineNum, content, content_len); };
-		static DiffLine DeletedLine(int newLineNum, int oldLineNum, const char* content_u8, size_t content_len) { return DiffLine(LINETYPE::DELETED, newLineNum, oldLineNum, content_u8, content_len); };
+		u8DiffLine(int type, int newLineNum, int oldLineNum, std::u8string line) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(line) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
+		u8DiffLine(int type, int newLineNum, int oldLineNum, std::string line_u8) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(UstrToU8str(line_u8)) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
+		u8DiffLine(int type, int newLineNum, int oldLineNum, const char8_t* content, size_t content_len) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(std::u8string(content, content_len)) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
+		u8DiffLine(int type, int newLineNum, int oldLineNum, const char* content_u8, size_t content_len) : type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(UstrToU8str(std::string(content_u8, content_len))) { if (!line.empty() && line.back() == '\n') line.pop_back(); };
+		static u8DiffLine ContextLine(int newLineNum, int oldLineNum, std::u8string line) { return u8DiffLine(LINETYPE::CONTEXT, newLineNum, oldLineNum, line); };
+		static u8DiffLine ContextLine(int newLineNum, int oldLineNum, std::string line_u8) { return u8DiffLine(LINETYPE::CONTEXT, newLineNum, oldLineNum, line_u8); };
+		static u8DiffLine ContextLine(int newLineNum, int oldLineNum, const char8_t* content, size_t content_len) { return u8DiffLine(LINETYPE::CONTEXT, newLineNum, oldLineNum, content, content_len); };
+		static u8DiffLine ContextLine(int newLineNum, int oldLineNum, const char* content_u8, size_t content_len) { return u8DiffLine(LINETYPE::CONTEXT, newLineNum, oldLineNum, content_u8, content_len); };
+		static u8DiffLine AddedLine(int newLineNum, int oldLineNum, std::u8string line) { return u8DiffLine(LINETYPE::ADDED, newLineNum, oldLineNum, line); };
+		static u8DiffLine AddedLine(int newLineNum, int oldLineNum, std::string line_u8) { return u8DiffLine(LINETYPE::ADDED, newLineNum, oldLineNum, line_u8); };
+		static u8DiffLine AddedLine(int newLineNum, int oldLineNum, const char8_t* content, size_t content_len) { return u8DiffLine(LINETYPE::ADDED, newLineNum, oldLineNum, content, content_len); };
+		static u8DiffLine AddedLine(int newLineNum, int oldLineNum, const char* content_u8, size_t content_len) { return u8DiffLine(LINETYPE::ADDED, newLineNum, oldLineNum, content_u8, content_len); };
+		static u8DiffLine DeletedLine(int newLineNum, int oldLineNum, std::u8string line) { return u8DiffLine(LINETYPE::DELETED, newLineNum, oldLineNum, line); };
+		static u8DiffLine DeletedLine(int newLineNum, int oldLineNum, std::string line_u8) { return u8DiffLine(LINETYPE::DELETED, newLineNum, oldLineNum, line_u8); };
+		static u8DiffLine DeletedLine(int newLineNum, int oldLineNum, const char8_t* content, size_t content_len) { return u8DiffLine(LINETYPE::DELETED, newLineNum, oldLineNum, content, content_len); };
+		static u8DiffLine DeletedLine(int newLineNum, int oldLineNum, const char* content_u8, size_t content_len) { return u8DiffLine(LINETYPE::DELETED, newLineNum, oldLineNum, content_u8, content_len); };
+	};
+
+	struct u8DiffHunk
+	{
+		std::vector<u8DiffLine> diffLines;
+		std::vector<std::u8string> rawLines;
+		git_diff_hunk hunk;
+	};
+	struct u8DiffResult
+	{
+		std::u8string filePath;
+		std::vector<u8DiffHunk> diffHunks;
+		int current_new_line_index = -1;
+		int current_old_line_index = -1;
+	};
+
+	struct u8Author
+	{
+		std::u8string name;
+		std::u8string email;
+		git_time when;
+		u8Author(std::u8string name, std::u8string email, git_time when) : name(name), email(email), when(when) {};
+		u8Author(std::string name_u8, std::string email_u8, git_time when) : name(UstrToU8str(name_u8)), email(UstrToU8str(email_u8)), when(when) {};
+	};
+	struct u8Commit
+	{
+
+		git_oid oid;
+		std::u8string oid_str;
+		u8Author author;
+		std::u8string message;
+		u8Commit(git_oid oid, std::u8string oid_str, u8Author author, std::u8string message) : oid(oid), oid_str(oid_str), author(author), message(message) {};
+		u8Commit(git_oid oid, std::string oid_str_u8, u8Author author, std::string message_u8) : oid(oid), oid_str(UstrToU8str(oid_str_u8)), author(author), message(UstrToU8str(message_u8)) {};
+
+	};
+	class DiffLine
+	{
+	public:
+		enum LINETYPE
+		{
+			CONTEXT = 0,
+			ADDED = 1,
+			DELETED,
+		};
+		int type;
+		int newLineNum;
+		int oldLineNum;
+		std::string line;
+
+		DiffLine(const u8DiffLine& u8other)
+			: type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(u8utf8ToLocal(u8other.line)) {};
+		DiffLine& operator=(const u8DiffLine& u8other)
+		{
+			type = u8other.type;
+			newLineNum = u8other.newLineNum;
+			oldLineNum = u8other.oldLineNum;
+			line = u8utf8ToLocal(u8other.line);
+		}
 	};
 
 	struct DiffHunk
@@ -98,33 +159,62 @@ public:
 		std::vector<DiffLine> diffLines;
 		std::vector<std::u8string> rawLines;
 		git_diff_hunk hunk;
+		DiffHunk(const u8DiffHunk& u8other)
+			: diffLines(u8other.diffLines.begin(), u8other.diffLines.end()), rawLines(u8other.rawLines.begin(), u8other.rawLines.end()), hunk(hunk) {}; // git_diff_hunk 깊은 복사 필요 
+		DiffHunk& operator=(const u8DiffHunk& u8other)
+		{
+			diffLines.assign(u8other.diffLines.begin(), u8other.diffLines.end());
+			rawLines.assign(u8other.rawLines.begin(), u8other.rawLines.end());
+			hunk = u8other.hunk;
+		}
 	};
 	struct DiffResult
 	{
-		std::u8string filePath;
+		std::string filePath;
 		std::vector<DiffHunk> diffHunks;
 		int current_new_line_index = -1;
 		int current_old_line_index = -1;
+		DiffResult(const u8DiffResult& u8other)
+			: filePath(u8utf8ToLocal(u8other.filePath)), diffHunks(u8other.diffHunks.begin(), u8other.diffHunks.end()), current_new_line_index(u8other.current_new_line_index), current_old_line_index(u8other.current_old_line_index) {};
+		DiffResult& operator=(const u8DiffResult& u8other)			
+		{			
+			filePath = u8utf8ToLocal(u8other.filePath);
+			diffHunks.assign(u8other.diffHunks.begin(), u8other.diffHunks.end());
+			current_new_line_index = u8other.current_new_line_index;
+			current_old_line_index = u8other.current_old_line_index;
+		}
 	};
 	
 	struct Author
 	{
-		std::u8string name;
-		std::u8string email;
+		std::string name;
+		std::string email;
 		git_time when;
-		Author(std::u8string name, std::u8string email, git_time when) : name(name), email(email), when(when) {};
-		Author(std::string name_u8, std::string email_u8, git_time when) : name(UstrToU8str(name_u8)), email(UstrToU8str(email_u8)), when(when) {};
+		Author(const u8Author& u8other)
+			: name(u8utf8ToLocal(u8other.name)), email(u8utf8ToLocal(u8other.email)), when(u8other.when) {};
+		Author& operator=(const u8Author& u8other)
+		{
+			name = u8utf8ToLocal(u8other.name);
+			email = u8utf8ToLocal(u8other.email);
+			when = u8other.when;
+		}
 	};
 	struct Commit
 	{
 
-		const git_oid oid;
-		const std::u8string oid_str;
-		const Author author;
-		const std::u8string message;
-		Commit(git_oid oid, std::u8string oid_str, Author author, std::u8string message) : oid(oid), oid_str(oid_str), author(author), message(message) {};
-		Commit(git_oid oid, std::string oid_str_u8, Author author, std::string message_u8) : oid(oid), oid_str(UstrToU8str(oid_str_u8)), author(author), message(UstrToU8str(message_u8)) {};
-
+		git_oid oid;
+		std::string oid_str;
+		Author author;
+		std::string message;
+		Commit(const u8Commit& u8other)
+			: oid(u8other.oid), oid_str(u8utf8ToLocal(u8other.oid_str)), author(u8other.author), message(u8utf8ToLocal(u8other.message)) {};
+		Commit& operator=(const u8Commit& u8other)
+		{
+			oid = u8other.oid; // 깊은 복사 필요
+			oid_str = u8utf8ToLocal(u8other.oid_str);
+			author = u8other.author;
+			message = u8utf8ToLocal(u8other.message);
+		}
 	};
 
 	static git_diff_file_cb git_diff_file_callback;
@@ -145,8 +235,7 @@ private:
 	void getLastError(std::string info_local8bit = "") { getLastError(u8localToUtf8(info_local8bit)); };
 
 
-	std::vector<DiffResult> u8gitDiffHeadToMemory(std::u8string filePath, std::u8string memory);
-
+	
 	FileStatus collectRepoStatus();	
 
 	std::vector<std::string> ignorePreset = { ".vs", "x64" };
@@ -155,10 +244,20 @@ private:
 
 
 
-	
-	
+	std::vector<u8DiffResult> u8gitDiffHeadToMemory(std::u8string filePath, std::u8string memory);
+	std::vector<u8DiffResult> u8gitDiffWithCommit(std::u8string filePath, std::u8string commit_id);
+
+	void u8printDiffResults(std::vector<u8DiffResult>& diffResults)
+	{
+		auto diffResults_local8bit = std::vector<DiffResult>(diffResults.begin(), diffResults.end());
+		return printDiffResults(diffResults_local8bit);
+	}
+	std::vector<u8DiffResult> u8gitDiff();
+	std::vector<u8DiffResult> u8gitDiffHead();
+	std::vector<u8Commit> u8gitLog();
 	void u8gitAdd(std::u8string filePath) { return stagingFiles({ U8strToUstr(filePath) }); };
 	void u8gitCommit(std::u8string message);
+	std::u8string gitShowFromCommit(std::u8string filePath, std::u8string commit_id);
 
 	std::u8string u8getContentsAtCommit(std::string filePath_u8, std::string commit_oid_str_u8);
 	std::u8string u8getContentsAtCommit(std::u8string filePath, std::u8string commit_oid_str) { return u8getContentsAtCommit(U8strToUstr(filePath), U8strToUstr(commit_oid_str)); };	
@@ -207,10 +306,32 @@ public:
 	void stagingAllTypechangedFiles();
 		
 	void printDiffResults(std::vector<DiffResult>& diffResults);
-	std::vector<DiffResult> gitDiff();
-	std::vector<DiffResult> gitDiffHead();	
-	std::vector<DiffResult> gitDiffHeadToMemory(std::string filePath_local8bit, std::string memory_utf8) { return u8gitDiffHeadToMemory(u8localToUtf8(filePath_local8bit), UstrToU8str(memory_utf8)); };
-	std::vector<Commit> gitLog();
+	std::vector<DiffResult> gitDiff()
+	{
+		auto diffResults_u8 = u8gitDiff();
+		return std::vector<DiffResult>(diffResults_u8.begin(), diffResults_u8.end());
+	}
+	std::vector<DiffResult> gitDiffHead()
+	{
+		auto diffResults_u8 = u8gitDiffHead();
+		return std::vector<DiffResult>(diffResults_u8.begin(), diffResults_u8.end());
+	}
+	std::vector<DiffResult> gitDiffHeadToMemory(std::string filePath_local8bit, std::string memory_utf8) 
+	{
+		auto diffResults_u8 = u8gitDiffHeadToMemory(u8localToUtf8(filePath_local8bit), UstrToU8str(memory_utf8));
+		return std::vector<DiffResult>(diffResults_u8.begin(), diffResults_u8.end());
+	};
+	std::vector<DiffResult> gitDiffWithCommit(std::string filePath_local8bit, std::string commit_id_localbit)
+	{
+		auto diffResults_u8 = u8gitDiffWithCommit(u8localToUtf8(filePath_local8bit), UstrToU8str(commit_id_localbit));
+		return std::vector<DiffResult>(diffResults_u8.begin(), diffResults_u8.end());
+	};
+	std::vector<Commit> gitLog()
+	{
+		auto logs_u8 = u8gitLog();		
+		return std::vector<Commit>(logs_u8.begin(), logs_u8.end());
+	}
+	std::string gitShowFromCommit(std::string filePath_local8bit, std::string commit_id_local8bit) { return u8utf8ToLocal(gitShowFromCommit(u8localToUtf8(filePath_local8bit), u8localToUtf8(commit_id_local8bit))); };
 	
 
 	void gitAdd(std::string filePath_local8bit) { return u8gitAdd(u8localToUtf8(filePath_local8bit)); };
