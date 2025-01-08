@@ -144,7 +144,7 @@ public:
 		std::string line;
 
 		DiffLine(const u8DiffLine& u8other)
-			: type(type), newLineNum(newLineNum), oldLineNum(oldLineNum), line(u8utf8ToLocal(u8other.line)) {};
+			: type(u8other.type), newLineNum(u8other.newLineNum), oldLineNum(u8other.oldLineNum), line(u8utf8ToLocal(u8other.line)) {};
 		DiffLine& operator=(const u8DiffLine& u8other)
 		{
 			type = u8other.type;
@@ -160,7 +160,7 @@ public:
 		std::vector<std::u8string> rawLines;
 		git_diff_hunk hunk;
 		DiffHunk(const u8DiffHunk& u8other)
-			: diffLines(u8other.diffLines.begin(), u8other.diffLines.end()), rawLines(u8other.rawLines.begin(), u8other.rawLines.end()), hunk(hunk) {}; // git_diff_hunk 깊은 복사 필요 
+			: diffLines(u8other.diffLines.begin(), u8other.diffLines.end()), rawLines(u8other.rawLines.begin(), u8other.rawLines.end()), hunk(u8other.hunk) {}; // git_diff_hunk 깊은 복사 필요 
 		DiffHunk& operator=(const u8DiffHunk& u8other)
 		{
 			diffLines.assign(u8other.diffLines.begin(), u8other.diffLines.end());
