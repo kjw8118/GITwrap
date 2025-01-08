@@ -299,7 +299,7 @@ void GIT::u8gitCommit(std::u8string commit_message)
 	
 }
 
-std::u8string GIT::gitShowFromCommit(std::u8string filePath, std::u8string commit_id)
+std::u8string GIT::u8gitShowFromCommit(std::u8string filePath, std::u8string commit_id)
 {
 	git_oid oid;
 	git_commit* commit = nullptr;
@@ -904,16 +904,16 @@ std::vector<GIT::u8Commit> GIT::u8gitLog()
 
 }
 
-std::u8string GIT::u8getContentsAtCommit(std::string filePath_u8, std::string commit_oid_str_u8)
+std::u8string GIT::u8gitShowFromCommit(std::u8string filePath, std::u8string commit_oid_str)
 {
 	git_oid commit_oid;
 	git_commit* commit = nullptr;
 	git_tree* tree = nullptr;
 	git_tree_entry* entry = nullptr;
 	git_blob* blob = nullptr;
-	std::string file_content;
+	std::u8string file_content;
 
-	if (git_oid_fromstr(&commit_oid, commit_oid_str_u8.c_str()) < GIT_OK)
+	if (git_oid_fromstr(&commit_oid, U8strToU(commit_oid_str)) < GIT_OK)
 		getLastError("Failed to git_oid_fromstr: ");
 
 	if (git_commit_lookup(&commit, repo, &commit_oid) < GIT_OK)
@@ -922,32 +922,32 @@ std::u8string GIT::u8getContentsAtCommit(std::string filePath_u8, std::string co
 	if (git_commit_tree(&tree, commit) < GIT_OK)
 		getLastError("Failed to git_commit_tree: ");
 
-	if (git_tree_entry_bypath(&entry, tree, filePath_u8.c_str()) < GIT_OK)
+	if (git_tree_entry_bypath(&entry, tree, U8strToU(filePath)) < GIT_OK)
 		getLastError("Failed to git_tree_entry_bypath: ");
 
 	if (git_blob_lookup(&blob, repo, git_tree_entry_id(entry)) < GIT_OK)
 		getLastError("Failed to git_blob_lookup: ");
 
-	file_content = std::string(static_cast<const char*>(git_blob_rawcontent(blob)), git_blob_rawsize(blob));
+	file_content = std::u8string(static_cast<const char8_t*>(git_blob_rawcontent(blob)), git_blob_rawsize(blob));
 
 	git_blob_free(blob);
 	git_tree_entry_free(entry);
 	git_tree_free(tree);
 	git_commit_free(commit);
 
-	return UstrToU8str(file_content);
+	return file_content;
 }
 
-std::u8string GIT::u8getContentsAtBranch(std::string filePath_u8, std::string branch_name_u8)
+std::u8string GIT::u8gitShowFromBranch(std::u8string filePath, std::u8string branch_name)
 {
 	git_reference* branch_ref = nullptr;
 	git_commit* branch_commit = nullptr;
 	git_tree* tree = nullptr;
 	git_tree_entry* entry = nullptr;
 	git_blob* blob = nullptr;
-	std::string file_content;
+	std::u8string file_content;
 
-	if (git_branch_lookup(&branch_ref, repo, U8strToU(branch_name_u8), GIT_BRANCH_LOCAL) < GIT_OK)
+	if (git_branch_lookup(&branch_ref, repo, U8strToU(branch_name), GIT_BRANCH_LOCAL) < GIT_OK)
 		getLastError("Failed to git_branch_lookup: ");
 
 	if (git_commit_lookup(&branch_commit, repo, git_reference_target(branch_ref)) < GIT_OK)
@@ -956,7 +956,7 @@ std::u8string GIT::u8getContentsAtBranch(std::string filePath_u8, std::string br
 	if (git_commit_tree(&tree, branch_commit) < GIT_OK)
 		getLastError("Failed to git_commit_tree: ");
 
-	switch (git_tree_entry_bypath(&entry, tree, U8strToU(filePath_u8)))
+	switch (git_tree_entry_bypath(&entry, tree, U8strToU(filePath)))
 	{
 	case GIT_OK:
 		break;
@@ -972,7 +972,7 @@ std::u8string GIT::u8getContentsAtBranch(std::string filePath_u8, std::string br
 	if (git_blob_lookup(&blob, repo, git_tree_entry_id(entry)) < GIT_OK)
 		getLastError("Failed to git_blob_lookup: ");
 
-	file_content = std::string(static_cast<const char*>(git_blob_rawcontent(blob)), git_blob_rawsize(blob));
+	file_content = std::u8string(static_cast<const char8_t*>(git_blob_rawcontent(blob)), git_blob_rawsize(blob));
 	
 	git_blob_free(blob);
 	git_tree_entry_free(entry);
@@ -980,7 +980,7 @@ std::u8string GIT::u8getContentsAtBranch(std::string filePath_u8, std::string br
 	git_commit_free(branch_commit);
 	git_reference_free(branch_ref);
 
-	return UstrToU8str(file_content);
+	return file_content;
 }
 
 std::string GIT::localToUtf8(const std::string& localStr)

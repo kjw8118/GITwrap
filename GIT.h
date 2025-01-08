@@ -257,12 +257,10 @@ private:
 	std::vector<u8Commit> u8gitLog();
 	void u8gitAdd(std::u8string filePath) { return stagingFiles({ U8strToUstr(filePath) }); };
 	void u8gitCommit(std::u8string message);
-	std::u8string gitShowFromCommit(std::u8string filePath, std::u8string commit_id);
 
-	std::u8string u8getContentsAtCommit(std::string filePath_u8, std::string commit_oid_str_u8);
-	std::u8string u8getContentsAtCommit(std::u8string filePath, std::u8string commit_oid_str) { return u8getContentsAtCommit(U8strToUstr(filePath), U8strToUstr(commit_oid_str)); };	
-	std::u8string u8getContentsAtBranch(std::string filePath_u8, std::string branch_name_u8);
-	std::u8string u8getContentsAtBranch(std::u8string filePath, std::u8string branch_name) { return u8getContentsAtBranch(U8strToUstr(filePath), U8strToUstr(branch_name)); };
+	std::u8string u8gitShowFromCommit(std::u8string filePath, std::u8string commit_id);
+	std::u8string u8gitShowFromBranch(std::u8string filePath, std::u8string branch_name);
+
 
 	void u8createBranch(const std::u8string& branch_name);
 	void u8switchBranch(const std::u8string& branch_name);
@@ -341,8 +339,8 @@ public:
 	void gitPull();
 	void gitPush();
 
-	std::string getContentsAtCommit(std::string filePath_local8bit, std::string commit_oid_str_local8bit) { return u8utf8ToLocal(u8getContentsAtCommit(u8localToUtf8(filePath_local8bit), u8localToUtf8(commit_oid_str_local8bit))); };	
-	std::string getContentsAtBranch(std::string filePath_local8bit, std::string branch_name_local8bit) { return u8utf8ToLocal(u8getContentsAtBranch(u8localToUtf8(filePath_local8bit), u8localToUtf8(branch_name_local8bit))); };
+	std::string gitShowFromCommit(std::string filePath_local8bit, std::string commit_oid_str_local8bit) { return u8utf8ToLocal(u8gitShowFromCommit(u8localToUtf8(filePath_local8bit), u8localToUtf8(commit_oid_str_local8bit))); };
+	std::string gitShowFromBranch(std::string filePath_local8bit, std::string branch_name_local8bit) { return u8utf8ToLocal(u8gitShowFromBranch(u8localToUtf8(filePath_local8bit), u8localToUtf8(branch_name_local8bit))); };
 
 	
 
