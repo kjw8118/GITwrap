@@ -329,9 +329,7 @@ public:
 		auto logs_u8 = u8gitLog();		
 		return std::vector<Commit>(logs_u8.begin(), logs_u8.end());
 	}
-	std::string gitShowFromCommit(std::string filePath_local8bit, std::string commit_id_local8bit) { return u8utf8ToLocal(gitShowFromCommit(u8localToUtf8(filePath_local8bit), u8localToUtf8(commit_id_local8bit))); };
 	
-
 	void gitAdd(std::string filePath_local8bit) { return u8gitAdd(u8localToUtf8(filePath_local8bit)); };
 
 	void gitCommit(std::string message_local8bit) { return u8gitCommit(u8localToUtf8(message_local8bit)); };

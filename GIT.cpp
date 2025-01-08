@@ -299,57 +299,6 @@ void GIT::u8gitCommit(std::u8string commit_message)
 	
 }
 
-std::u8string GIT::u8gitShowFromCommit(std::u8string filePath, std::u8string commit_id)
-{
-	git_oid oid;
-	git_commit* commit = nullptr;
-	git_tree* tree = nullptr;
-	git_tree_entry* entry = nullptr;
-	git_blob* blob = nullptr;
-	std::u8string file_content = u8"";
-
-	// 1. 커밋 OID 가져오기
-	if (git_oid_fromstr(&oid, U8strToU(commit_id)) < GIT_OK)
-		getLastError("Failed to git_oid_fromstr: ");
-
-	// 2. 커밋 객체 가져오기
-	if (git_commit_lookup(&commit, repo, &oid) < GIT_OK)
-		getLastError("Failed to git_commit_lookup: ");
-
-	// 3. 커밋에서 Tree 객체 가져오기
-	if (git_commit_tree(&tree, commit) < GIT_OK)
-		getLastError("Failed to git_commit_tree: ");
-
-	// 4. Tree에서 파일 경로로 엔트리 검색
-	switch(git_tree_entry_bypath(&entry, tree, U8strToU(filePath)))
-	{
-	case GIT_OK:
-	{
-		// 5. Tree 엔트리에서 Blob 가져오기
-		if (git_blob_lookup(&blob, repo, git_tree_entry_id(entry)) < GIT_OK)
-			getLastError("Failed to git_blob_lookup: ");
-
-		// 6. Blob 내용 읽기
-		const void* content = git_blob_rawcontent(blob);
-		size_t content_len = git_blob_rawsize(blob);
-		file_content.assign(static_cast<const char8_t*>(content), content_len);
-		break;
-	}
-	default:
-		getLastError("Failed to git_tree_entry_bypath: ");
-		break;
-
-	}
-
-	// 리소스 정리
-	git_blob_free(blob);
-	git_tree_entry_free(entry);
-	git_tree_free(tree);
-	git_commit_free(commit);
-
-	return file_content;
-}
-
 void GIT::gitPull()
 {
 	git_remote* remote = nullptr;
