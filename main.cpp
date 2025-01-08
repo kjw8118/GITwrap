@@ -77,6 +77,59 @@ bool testForRemoteClone()
 int main()
 {
     std::cout << "Hello World!\n";
+
+
+
+
+    char mix[] = { 0xc3, 0xbc, 0xED, 0x95, 0x9C, 0xEA, 0xB8, 0x80, 0x20, 0x00 };
+    char newMix[] = { 0xFC, 0xC7, 0xD1, 0xB1, 0xDB, 0x00 };
+
+    SetConsoleOutputCP(CP_UTF8);
+    std::string mix_str(mix);
+    std::cout << mix_str << std::endl;
+    /*for (unsigned char c : mix_str)
+        std::cout << (int)c << ", ";
+    std::cout << std::endl;
+
+    SetConsoleOutputCP(51949);
+    auto mix_str_euckr = GIT::utf8ToLocal(mix_str);
+    std::cout << mix_str_euckr << std::endl;
+    for (unsigned char c : mix_str_euckr)
+        std::cout << (int)c << ", ";
+    std::cout << std::endl;
+
+    SetConsoleOutputCP(28591);
+    auto mix_str_latin1 = GIT::utf8ToLatin1(mix_str);
+    std::cout << mix_str_latin1 << std::endl;
+    for (unsigned char c : mix_str_latin1)
+        std::cout << (int)c << ", ";
+    std::cout << std::endl;*/
+
+    SetConsoleOutputCP(CP_UTF8);
+    std::string newMix_str(newMix);
+    std::cout << newMix_str << std::endl;
+    for (unsigned char c : newMix_str)
+        std::cout << std::hex << (int)c << ", ";
+    std::cout << std::endl;
+
+    auto newMix_str_utf8 = GIT::mixedToUtf8(newMix);
+    std::cout << newMix_str_utf8 << std::endl;
+    for (unsigned char c : newMix_str_utf8)
+        std::cout << std::hex << (int)c << ", ";
+    std::cout << std::endl;
+
+    auto newMix_str_euckr = GIT::utf8ToEucKrAndLatin1(newMix_str_utf8);
+    std::cout << newMix_str_euckr << std::endl;
+    for (unsigned char c : newMix_str_euckr)
+        std::cout << std::hex << (int)c << ", ";
+    std::cout << std::endl;
+
+    return 0;
+
+
+
+
+
     testForRemoteClone();
     //auto git = new GIT("./repo1", "Jinwon", "kjw8118@gmail.com");
     //auto git1 = new GIT(u8"리포", u8"Jinwon", u8"kjw8118@gmail.com");

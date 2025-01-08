@@ -6,7 +6,7 @@
 
 void GIT::printErrorAndShutdown(std::u8string text)
 {
-	std::cerr << u8utf8ToLocal(text) << std::endl;
+	std::cerr << utf8ToEucKrAndLatin1(text) << std::endl;
 	git_libgit2_shutdown();
 	exit(EXIT_FAILURE);
 }
@@ -23,8 +23,8 @@ void GIT::getLastError(std::u8string info)
 void GIT::clearGitIgnore()
 {
 	std::u8string gitIgnorePath = repoPath + u8"/.gitignore";
-	auto gitIgnorePath_local8bit = u8utf8ToLocal(gitIgnorePath);
-	std::ofstream gitIgnoreFileTrunc(gitIgnorePath_local8bit, std::ios::trunc);
+	auto gitIgnorePath_mixed = utf8ToEucKrAndLatin1(gitIgnorePath);
+	std::ofstream gitIgnoreFileTrunc(gitIgnorePath_mixed, std::ios::trunc);
 	if (gitIgnoreFileTrunc.is_open())
 	{
 		std::cout << "git ignore file successfully clear" << std::endl;
@@ -37,10 +37,10 @@ void GIT::clearGitIgnore()
 void GIT::appendGitIgnore(const std::vector<std::string>& ignorePatterns)
 {
 	std::u8string gitIgnorePath = repoPath + u8"/.gitignore";
-	auto gitIgnorePath_local8bit = u8utf8ToLocal(gitIgnorePath);
+	auto gitIgnorePath_mixed = utf8ToEucKrAndLatin1(gitIgnorePath);
 	std::set<std::u8string> existingPatterns;
 
-	std::ifstream gitIgnoreFileIn(gitIgnorePath_local8bit);
+	std::ifstream gitIgnoreFileIn(gitIgnorePath_mixed);
 	if (gitIgnoreFileIn.is_open())
 	{
 		std::string line; /* Assume UTF8 */
@@ -49,15 +49,15 @@ void GIT::appendGitIgnore(const std::vector<std::string>& ignorePatterns)
 		gitIgnoreFileIn.close();
 	}
 
-	std::ofstream gitIgnoreFileOut(gitIgnorePath_local8bit, std::ios::app);
+	std::ofstream gitIgnoreFileOut(gitIgnorePath_mixed, std::ios::app);
 	if (!gitIgnoreFileOut.is_open())
 	{
 		printErrorAndShutdown("gitIgnoreFileOut open failed!");
 	}
 
-	for (const auto& pattern_local8bit : ignorePatterns)
+	for (const auto& pattern_mixed : ignorePatterns)
 	{
-		auto pattern = u8localToUtf8(pattern_local8bit);
+		auto pattern = u8mixedToUtf8(pattern_mixed);
 		if (existingPatterns.find(pattern) == existingPatterns.end())
 		{
 			gitIgnoreFileOut << U8strToUstr(pattern) << "\n";
@@ -85,7 +85,7 @@ GIT::FileStatus GIT::collectRepoStatus()
 	/* std::cout << "git_status_list_entrycount: " + std::to_string(statusCount) << std::endl; */
 	for (size_t i = 0; i < statusCount; i++)
 	{
-		const git_status_entry* entry = git_status_byindex(statusList, i);		
+		const git_status_entry* entry = git_status_byindex(statusList, i);
 		if (entry->status & GIT_STATUS_WT_NEW)
 		{
 			fileStatus.notStaged.newFiles.push_back(UToU8str(entry->index_to_workdir->new_file.path));
@@ -152,32 +152,32 @@ GIT::FileStatus GIT::collectRepoStatus()
 
 std::u8string GIT::u8printRepoStatus(const GIT::FileStatus& fileStatus)
 {
-	/* std::ostringstream oss_local8bit; */
+	/* std::ostringstream oss_mixed; */
 	std::u8string oss = u8"";
 	oss += u8"\nNot Staged:\n";
 	for (const auto& file : fileStatus.notStaged.newFiles)
 		oss += u8"\tUntracked files:\t" + file + u8"\n";
 	for (const auto& file : fileStatus.notStaged.modifiedFiles)
-		oss += u8"\tModified files:\t" + (file) + u8"\n";
+		oss += u8"\tModified files:\t" + (file)+u8"\n";
 	for (const auto& file : fileStatus.notStaged.deletedFiles)
-		oss += u8"\tDeleted files:\t" + (file) + u8"\n";
+		oss += u8"\tDeleted files:\t" + (file)+u8"\n";
 	for (const auto& file : fileStatus.notStaged.renamedFiles)
-		oss += u8"\tRenamed files:\t" + (file) + u8"\n";
+		oss += u8"\tRenamed files:\t" + (file)+u8"\n";
 	for (const auto& file : fileStatus.notStaged.typechangedFiles)
-		oss += u8"\tTypechanged files:\t" + (file) + u8"\n";
+		oss += u8"\tTypechanged files:\t" + (file)+u8"\n";
 	for (const auto& file : fileStatus.notStaged.unreadableFiles)
-		oss += u8"\tUnreadable files:\t" + (file) + u8"\n";
+		oss += u8"\tUnreadable files:\t" + (file)+u8"\n";
 	oss += u8"\nStaged:\n";
 	for (const auto& file : fileStatus.staged.newFiles)
-		oss += u8"\tNew files:\t" + (file) + u8"\n";
+		oss += u8"\tNew files:\t" + (file)+u8"\n";
 	for (const auto& file : fileStatus.staged.modifiedFiles)
-		oss += u8"\tModified files:\t" + (file) + u8"\n";
+		oss += u8"\tModified files:\t" + (file)+u8"\n";
 	for (const auto& file : fileStatus.staged.deletedFiles)
-		oss += u8"\tDeleted files:\t" + (file) + u8"\n";
+		oss += u8"\tDeleted files:\t" + (file)+u8"\n";
 	for (const auto& file : fileStatus.staged.renamedFiles)
-		oss += u8"\tRenamed files:\t" + (file) + u8"\n";
+		oss += u8"\tRenamed files:\t" + (file)+u8"\n";
 	for (const auto& file : fileStatus.staged.typechangedFiles)
-		oss += u8"\tTypechanged files:\t" + (file) + u8"\n";
+		oss += u8"\tTypechanged files:\t" + (file)+u8"\n";
 
 	return oss;
 }
@@ -190,8 +190,8 @@ void GIT::stagingFiles(std::vector<std::u8string> filesPath)
 	for (const auto& filePath : filesPath)
 	{
 		if (git_index_add_bypath(index, U8strToU(filePath)) < 0)
-			getLastError("git_index_add_bypath failed at " + u8utf8ToLocal(filePath) + ": ");
-		std::cout << "\nAdded file to index: " + u8utf8ToLocal(filePath) << std::endl;
+			getLastError("git_index_add_bypath failed at " + utf8ToEucKrAndLatin1(filePath) + ": ");
+		std::cout << "\nAdded file to index: " + utf8ToEucKrAndLatin1(filePath) << std::endl;
 	}
 
 
@@ -205,11 +205,11 @@ void GIT::stagingFiles(std::vector<std::u8string> filesPath)
 		break;
 	}
 }
-void GIT::stagingFiles(std::vector<std::string> filesPath_local8bit)
+void GIT::stagingFiles(std::vector<std::string> filesPath_mixed)
 {
 	std::vector<std::u8string> filesPath;
-	for (auto filePath_local8bit : filesPath_local8bit)
-		filesPath.push_back(u8localToUtf8(filePath_local8bit));
+	for (auto filePath_mixed : filesPath_mixed)
+		filesPath.push_back(u8mixedToUtf8(filePath_mixed));
 	return stagingFiles(filesPath);
 }
 void GIT::stagingAllUntrackedFiles()
@@ -296,7 +296,7 @@ void GIT::u8gitCommit(std::u8string commit_message)
 	git_index_free(index);
 	if (parent_commit) git_commit_free(parent_commit);
 
-	
+
 }
 
 void GIT::gitPull()
@@ -320,7 +320,7 @@ void GIT::gitPull()
 	git_reference* remote_ref = nullptr;
 	if (git_reference_lookup(&remote_ref, repo, remote_branch_ref.c_str()) < GIT_OK)
 		getLastError("Failed to git_reference_lookup: ");
-		
+
 	git_annotated_commit* annotated_commit = nullptr;
 	git_annotated_commit_from_ref(&annotated_commit, repo, remote_ref);
 
@@ -328,7 +328,7 @@ void GIT::gitPull()
 	git_merge_preference_t preference;
 
 	git_merge_analysis(&analysis, &preference, repo, (const git_annotated_commit**)&annotated_commit, 1);
-	
+
 	if (analysis & GIT_MERGE_ANALYSIS_FASTFORWARD) {
 		git_reference* new_ref = nullptr;
 		std::cout << "Fast-forwarding..." << std::endl;
@@ -381,12 +381,12 @@ void GIT::gitPush()
 GIT::GIT(std::u8string repoPath, std::u8string userName, std::u8string userEmail)
 	: repoPath(repoPath), userName(userName), userEmail(userEmail)
 {
-	auto repoPath_local8bit = u8utf8ToLocal(repoPath);
-	if (!std::filesystem::is_directory(repoPath_local8bit))
+	auto repoPath_mixed = utf8ToEucKrAndLatin1(repoPath);
+	if (!std::filesystem::is_directory(repoPath_mixed))
 	{
 		std::cout << "Repo Path directory is not exist" << std::endl;
-		if (std::filesystem::create_directory(repoPath_local8bit))
-			std::cout << "Create dir: " << repoPath_local8bit << std::endl;
+		if (std::filesystem::create_directory(repoPath_mixed))
+			std::cout << "Create dir: " << repoPath_mixed << std::endl;
 	}
 
 	git_libgit2_init();
@@ -442,11 +442,11 @@ GIT* GIT::cloneFromRemote(std::u8string remoteRepoPath, std::u8string localRepoP
 	if (git_clone(&repo, url, local_path, &clone_opts) < GIT_OK)
 	{
 		const git_error* err = git_error_last();
-		std::cerr << "Failed to git_clone: " << (err && err->message ? utf8ToLocal(err->message) : "Unknown error") << std::endl;
+		std::cerr << "Failed to git_clone: " << (err && err->message ? utf8ToEucKrAndLatin1(err->message) : "Unknown error") << std::endl;
 		return nullptr;
 	}
 
-	std::cout << "Repository cloned to: " << utf8ToLocal(local_path) << std::endl;
+	std::cout << "Repository cloned to: " << utf8ToEucKrAndLatin1(local_path) << std::endl;
 
 	// Clean up
 	git_repository_free(repo);
@@ -459,7 +459,7 @@ GIT* GIT::cloneFromRemote(std::u8string remoteRepoPath, std::u8string localRepoP
 std::string GIT::getCurrentBranch()
 {
 	git_reference* head_ref = nullptr;
-	int ret = git_repository_head(&head_ref, repo);	
+	int ret = git_repository_head(&head_ref, repo);
 	switch (ret)
 	{
 	case GIT_EUNBORNBRANCH:
@@ -471,7 +471,7 @@ std::string GIT::getCurrentBranch()
 		return "";
 		break;
 	case GIT_OK:
-		
+
 		break;
 	default:
 		getLastError("git_repository_head failed: ");
@@ -484,7 +484,7 @@ std::string GIT::getCurrentBranch()
 		getLastError("git_branch_name failed: ");
 
 	git_reference_free(head_ref);
-	return utf8ToLocal(branch_name);
+	return utf8ToEucKrAndLatin1(branch_name);
 
 }
 
@@ -495,7 +495,7 @@ std::string GIT::getCurrentStatus()
 }
 
 void GIT::u8createBranch(const std::u8string& branch_name)
-{	
+{
 	git_reference* new_branch = nullptr;
 	git_object* head_commit = nullptr;
 	if (git_revparse_single(&head_commit, repo, "HEAD") < 0)
@@ -536,12 +536,12 @@ void GIT::u8mergeBranch(const std::u8string& source_branch)
 	if (git_branch_lookup(&source_ref, repo, U8strToU(source_branch), GIT_BRANCH_LOCAL) < 0)
 		getLastError("git_branch_lookup failed: ");
 
-	if(git_annotated_commit_from_ref(&source_annotated, repo, source_ref) < 0)
+	if (git_annotated_commit_from_ref(&source_annotated, repo, source_ref) < 0)
 		getLastError("git_annotated_commit_from_ref failed: ");
 
-	if(git_merge(repo, (const git_annotated_commit**)&source_annotated, 1, nullptr, nullptr) < 0)
+	if (git_merge(repo, (const git_annotated_commit**)&source_annotated, 1, nullptr, nullptr) < 0)
 		getLastError("git_merge failed: ");
-	
+
 	git_reference_free(target_ref);
 	git_reference_free(source_ref);
 	git_annotated_commit_free(source_annotated);
@@ -550,12 +550,12 @@ void GIT::u8deleteBranch(const std::u8string& branch_name)
 {
 	git_reference* branch_ref = nullptr;
 
-	if(git_branch_lookup(&branch_ref, repo, U8strToU(branch_name), GIT_BRANCH_LOCAL) < 0)
+	if (git_branch_lookup(&branch_ref, repo, U8strToU(branch_name), GIT_BRANCH_LOCAL) < 0)
 		getLastError("git_branch_lookup failed: ");
 
-	if(git_branch_delete(branch_ref) < 0)
+	if (git_branch_delete(branch_ref) < 0)
 		getLastError("git_branch_delete failed: ");
-	
+
 	git_reference_free(branch_ref);
 }
 
@@ -735,7 +735,7 @@ std::vector<GIT::u8DiffResult> GIT::u8gitDiff() /* git diff */
 	if (git_diff_foreach(diff, git_diff_file_callback, nullptr, git_diff_hunk_callback, git_diff_line_callback, &diffResults) < 0)
 		getLastError("git_diff_foreach failed: ");
 
-	git_diff_free(diff);	
+	git_diff_free(diff);
 
 	return diffResults;
 }
@@ -767,7 +767,7 @@ std::vector<GIT::u8DiffResult> GIT::u8gitDiffHead() /* git diff HEAD */
 std::vector<GIT::u8DiffResult> GIT::u8gitDiffHeadToMemory(std::u8string filePath, std::u8string memory)
 {
 	git_blob* file_blob = nullptr;
-	git_blob* memory_blob = nullptr;	
+	git_blob* memory_blob = nullptr;
 	git_diff_options diff_opts = GIT_DIFF_OPTIONS_INIT;
 
 	git_oid file_oid;
@@ -776,8 +776,8 @@ std::vector<GIT::u8DiffResult> GIT::u8gitDiffHeadToMemory(std::u8string filePath
 
 	if (git_blob_lookup(&file_blob, repo, &file_oid) < GIT_OK)
 		getLastError("Failed to git_blob_lookup: ");
-	
-	std::vector<GIT::u8DiffResult> diffResults;	
+
+	std::vector<GIT::u8DiffResult> diffResults;
 	if (git_diff_blob_to_buffer(file_blob, nullptr, U8strToU(memory), strlen(U8strToU(memory)), nullptr, &diff_opts,
 		git_diff_file_callback, nullptr, git_diff_hunk_callback, git_diff_line_callback, &diffResults) < GIT_OK)
 		getLastError("Failed to git_diff_blob_to_buffer: ");
@@ -794,17 +794,17 @@ std::vector<GIT::u8DiffResult> GIT::u8gitDiffWithCommit(std::u8string filePath, 
 	git_commit* commit = nullptr;
 	git_tree* commit_tree = nullptr;
 	git_diff* diff = nullptr;
-	
+
 	if (git_oid_fromstr(&oid, U8strToU(commit_id)) < GIT_OK)
 		getLastError("Failed to git_oid_fromstr: ");
 
 	if (git_commit_lookup(&commit, repo, &oid) < GIT_OK)
 		getLastError("Failed to git_commit_lookup: ");
 
-	if(git_commit_tree(&commit_tree, commit) < GIT_OK)
+	if (git_commit_tree(&commit_tree, commit) < GIT_OK)
 		getLastError("Failed to git_commit_tree: ");
 
-	if(git_diff_tree_to_workdir_with_index(&diff, repo, commit_tree, nullptr) < GIT_OK)
+	if (git_diff_tree_to_workdir_with_index(&diff, repo, commit_tree, nullptr) < GIT_OK)
 		getLastError("Failed to git_diff_tree_to_workdir_with_index: ");
 
 	std::vector<GIT::u8DiffResult> diffResults;
@@ -922,7 +922,7 @@ std::u8string GIT::u8gitShowFromBranch(std::u8string filePath, std::u8string bra
 		getLastError("Failed to git_blob_lookup: ");
 
 	file_content = std::u8string(static_cast<const char8_t*>(git_blob_rawcontent(blob)), git_blob_rawsize(blob));
-	
+
 	git_blob_free(blob);
 	git_tree_entry_free(entry);
 	git_tree_free(tree);
@@ -930,6 +930,65 @@ std::u8string GIT::u8gitShowFromBranch(std::u8string filePath, std::u8string bra
 	git_reference_free(branch_ref);
 
 	return file_content;
+}
+
+
+bool GIT::isValidEucKr(unsigned char byte1, unsigned char byte2)
+{
+	char eucKrBytes[3] = { static_cast<char>(byte1), static_cast<char>(byte2), '\0' };
+	wchar_t wideChar[2] = { 0 };
+
+	// EUC-KR -> WideChar 변환
+	if (MultiByteToWideChar(949, MB_ERR_INVALID_CHARS, eucKrBytes, -1, wideChar, 2) == 0)
+		return false;
+
+	wchar_t wc = wideChar[0];
+	if ((wc >= 0xAC00 && wc <= 0xd7a3) || // 한글 음정
+		(wc >= 0x3000 && wc <= 0x303f)) // 기타 KS X 1001 기호
+		return true;
+
+	return false;
+}
+
+std::string GIT::latin1ToUtf8(const std::string& latin1) {
+	int wideCharSize = MultiByteToWideChar(28591, 0, latin1.c_str(), -1, nullptr, 0); // 28591: Latin-1
+	if (wideCharSize == 0) {
+		throw std::runtime_error("MultiByteToWideChar failed");
+	}
+
+	std::wstring wideString(wideCharSize, L'\0');
+	MultiByteToWideChar(28591, 0, latin1.c_str(), -1, &wideString[0], wideCharSize);
+
+	int utf8Size = WideCharToMultiByte(CP_UTF8, 0, wideString.c_str(), -1, nullptr, 0, nullptr, nullptr);
+	if (utf8Size == 0) {
+		throw std::runtime_error("WideCharToMultiByte failed");
+	}
+
+	std::string utf8String(utf8Size, '\0');
+	WideCharToMultiByte(CP_UTF8, 0, wideString.c_str(), -1, &utf8String[0], utf8Size, nullptr, nullptr);
+
+	return utf8String;
+}
+
+// UTF-8 -> Latin-1 변환
+std::string GIT::utf8ToLatin1(const std::string& utf8) {
+	int wideCharSize = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+	if (wideCharSize == 0) {
+		throw std::runtime_error("MultiByteToWideChar failed");
+	}
+
+	std::wstring wideString(wideCharSize, L'\0');
+	MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, &wideString[0], wideCharSize);
+
+	int latin1Size = WideCharToMultiByte(28591, 0, wideString.c_str(), -1, nullptr, 0, nullptr, nullptr); // 28591: Latin-1
+	if (latin1Size == 0) {
+		throw std::runtime_error("WideCharToMultiByte failed");
+	}
+
+	std::string latin1String(latin1Size, '\0');
+	WideCharToMultiByte(28591, 0, wideString.c_str(), -1, &latin1String[0], latin1Size, nullptr, nullptr);
+
+	return latin1String;
 }
 
 std::string GIT::localToUtf8(const std::string& localStr)
@@ -950,7 +1009,7 @@ std::string GIT::localToUtf8(const std::string& localStr)
 	std::string utf8Str(u8len, '\0');
 	WideCharToMultiByte(CP_UTF8, 0, wideStr.c_str(), -1, &utf8Str[0], u8len, nullptr, nullptr);
 
-	
+
 	return utf8Str;
 }
 std::u8string GIT::u8localToUtf8(const std::string& localStr)
@@ -958,7 +1017,7 @@ std::u8string GIT::u8localToUtf8(const std::string& localStr)
 	return std::u8string(reinterpret_cast<const char8_t*>(localToUtf8(localStr).c_str()));
 }
 std::string GIT::utf8ToLocal(const std::string& utf8Str)
-{	
+{
 	/* UTF - 8 → UTF - 16 변환 */
 	int wlen = MultiByteToWideChar(CP_UTF8, 0, reinterpret_cast<const char*>(utf8Str.c_str()), -1, nullptr, 0);
 	if (wlen <= 0) {
@@ -974,14 +1033,166 @@ std::string GIT::utf8ToLocal(const std::string& utf8Str)
 	}
 	std::string localStr(len, '\0');
 	WideCharToMultiByte(CP_ACP, 0, wideStr.c_str(), -1, &localStr[0], len, nullptr, nullptr);
-	
+
 	return localStr;
 }
 std::string GIT::u8utf8ToLocal(const std::u8string& utf8Str)
-{	
+{
 	return utf8ToLocal(std::string(reinterpret_cast<const char*>(utf8Str.c_str())));
 }
 
+
+
+
+std::wstring GIT::latin1ToWideChar(const std::string& latin1)
+{
+	int wideCharSize = MultiByteToWideChar(28591, 0, latin1.c_str(), -1, nullptr, 0);
+	if (wideCharSize == 0) {
+		throw std::runtime_error("MultiByteToWideChar failed for Latin1");
+	}
+	std::wstring wideString(wideCharSize, L'\0');
+	MultiByteToWideChar(28591, 0, latin1.c_str(), -1, &wideString[0], wideCharSize);
+	wideString.pop_back();
+	return wideString;
+}
+std::wstring GIT::eucKrToWideChar(const std::string& eucKr)
+{
+	int wideCharSize = MultiByteToWideChar(51949, 0, eucKr.c_str(), -1, nullptr, 0);
+	if (wideCharSize == 0) {
+		throw std::runtime_error("MultiByteToWideChar failed for EUC-KR");
+	}
+	std::wstring wideString(wideCharSize, L'\0');
+	MultiByteToWideChar(51949, 0, eucKr.c_str(), -1, &wideString[0], wideCharSize);
+	wideString.pop_back();
+	return wideString;
+}
+std::string GIT::wideCharToUtf8(const std::wstring& wideString)
+{
+	int utf8Size = WideCharToMultiByte(CP_UTF8, 0, wideString.c_str(), -1, nullptr, 0, nullptr, nullptr);
+	if (utf8Size == 0) {
+		throw std::runtime_error("WideCharToMultiByte failed for UTF-8");
+	}
+	std::string utf8String(utf8Size, '\0');
+	WideCharToMultiByte(CP_UTF8, 0, wideString.c_str(), -1, &utf8String[0], utf8Size, nullptr, nullptr);
+	utf8String.pop_back();
+	return utf8String;
+}
+std::string GIT::mixedToUtf8(const std::string& mixedInput)
+{
+	std::string utf8Result = "";
+	size_t i = 0;
+
+	while (i < mixedInput.size()) {
+		unsigned char ch = mixedInput[i];
+		unsigned char ch2 = 0;
+		if (i + 1 < mixedInput.size())
+			ch2 = (unsigned char)mixedInput[i + 1];
+		if (ch <= 0x7F) {
+			// ASCII 문자 (0x00 ~ 0x7F)
+			utf8Result += static_cast<char>(ch);
+			i += 1;
+		}
+		else if (ch == 0xA0)
+		{
+			// Latin1 문자 (1바이트)
+			std::string latin1Char(1, ch);
+			auto latin1WideChar = latin1ToWideChar(latin1Char);
+			auto latin1Utf8 = wideCharToUtf8(latin1WideChar);
+			utf8Result += latin1Utf8;
+			i += 1;
+		}
+		else if (ch >= 0xA1 && ch <= 0xFE) {
+			char eucKrBytes[3] = { static_cast<char>(ch), static_cast<char>(ch2), '\0' };
+			wchar_t wideChar[2] = { 0, };
+			if (i + 1 < mixedInput.size() && (unsigned char)mixedInput[i + 1] >= 0xA1 && (unsigned char)mixedInput[i + 1] <= 0xFE && isValidEucKr(ch, ch2)) {
+				try
+				{
+					// EUC-KR 문자 (2바이트)
+					std::string eucKrChar = mixedInput.substr(i, 2);
+					auto eucKrWideChar = eucKrToWideChar(eucKrChar);
+					auto eucKrutf8 = wideCharToUtf8(eucKrWideChar);
+					utf8Result += eucKrutf8;
+					i += 2;
+				}
+				catch (...)
+				{
+					// Latin1 문자 (1바이트)
+					std::string latin1Char(1, ch);
+					auto latin1WideChar = latin1ToWideChar(latin1Char);
+					auto latin1Utf8 = wideCharToUtf8(latin1WideChar);
+					utf8Result += latin1Utf8;
+					i += 1;
+				}
+
+			}
+			else {
+				// Latin1 문자 (1바이트)
+				std::string latin1Char(1, ch);
+				auto latin1WideChar = latin1ToWideChar(latin1Char);
+				auto latin1Utf8 = wideCharToUtf8(latin1WideChar);
+				utf8Result += latin1Utf8;
+				i += 1;
+			}
+		}
+		else {
+			throw std::runtime_error("Unknown encoding or invalid byte sequence");
+		}
+	}
+
+	return utf8Result;
+}
+std::wstring GIT::utf8ToWideChar(const std::string& utf8)
+{
+	int wideCharSize = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+	if (wideCharSize == 0) {
+		throw std::runtime_error("MultiByteToWideChar failed for UTF-8");
+	}
+	std::wstring wideString(wideCharSize, L'\0');
+	MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, &wideString[0], wideCharSize);
+	wideString.pop_back();
+	return wideString;
+}
+std::string GIT::wideCharToEucKr(const std::wstring& wideString)
+{
+	int eucKrSize = WideCharToMultiByte(51949, 0, wideString.c_str(), -1, nullptr, 0, nullptr, nullptr);
+	if (eucKrSize == 0) {
+		throw std::runtime_error("WideCharToMultiByte failed for EUC-KR");
+	}
+	std::string eucKrString(eucKrSize, '\0');
+	WideCharToMultiByte(51949, 0, wideString.c_str(), -1, &eucKrString[0], eucKrSize, nullptr, nullptr);
+	eucKrString.pop_back();
+	return eucKrString;
+}
+std::string GIT::wideCharToLatin1(const std::wstring& wideString)
+{
+	int latin1Size = WideCharToMultiByte(28591, 0, wideString.c_str(), -1, nullptr, 0, nullptr, nullptr);
+	if (latin1Size == 0) {
+		throw std::runtime_error("WideCharToMultiByte failed for Latin1");
+	}
+	std::string latin1String(latin1Size, '\0');
+	WideCharToMultiByte(28591, 0, wideString.c_str(), -1, &latin1String[0], latin1Size, nullptr, nullptr);
+	latin1String.pop_back();
+	return latin1String;
+}
+std::string GIT::utf8ToEucKrAndLatin1(const std::string& utf8Input)
+{
+	std::wstring wideString = utf8ToWideChar(utf8Input);
+	std::string result;
+
+	for (wchar_t ch : wideString) {
+		try {
+			// EUC-KR로 변환 시도
+			std::wstring singleChar(1, ch);
+			result += wideCharToEucKr(singleChar);
+		}
+		catch (...) {
+			// 변환 실패 시 Latin1로 변환
+			std::wstring singleChar(1, ch);
+			result += wideCharToLatin1(singleChar);
+		}
+	}
+	return result;
+}
 
 GIT::~GIT()
 {
