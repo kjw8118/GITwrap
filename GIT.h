@@ -143,8 +143,9 @@ public:
 		std::u8string oid_str;
 		u8Author author;
 		std::u8string message;
-		u8Commit(git_oid oid, std::u8string oid_str, u8Author author, std::u8string message) : oid(oid), oid_str(oid_str), author(author), message(message) {};
-		u8Commit(git_oid oid, std::string oid_str_u8, u8Author author, std::string message_u8) : oid(oid), oid_str(UstrToU8str(oid_str_u8)), author(author), message(UstrToU8str(message_u8)) {};
+		std::u8string branch;
+		u8Commit(git_oid oid, std::u8string oid_str, u8Author author, std::u8string message, std::u8string branch) : oid(oid), oid_str(oid_str), author(author), message(message), branch(branch) {};
+		u8Commit(git_oid oid, std::string oid_str_u8, u8Author author, std::string message_u8, std::string branch_u8) : oid(oid), oid_str(UstrToU8str(oid_str_u8)), author(author), message(UstrToU8str(message_u8)), branch(UstrToU8str(branch_u8)) {};
 
 	};
 	class DiffLine
@@ -224,14 +225,16 @@ public:
 		std::string oid_str;
 		Author author;
 		std::string message;
+		std::string branch;
 		Commit(const u8Commit& u8other)
-			: oid(u8other.oid), oid_str(utf8ToEucKrAndLatin1(u8other.oid_str)), author(u8other.author), message(utf8ToEucKrAndLatin1(u8other.message)) {};
+			: oid(u8other.oid), oid_str(utf8ToEucKrAndLatin1(u8other.oid_str)), author(u8other.author), message(utf8ToEucKrAndLatin1(u8other.message)), branch(utf8ToEucKrAndLatin1(u8other.branch)) {};
 		Commit& operator=(const u8Commit& u8other)
 		{
 			oid = u8other.oid; // 깊은 복사 필요
 			oid_str = utf8ToEucKrAndLatin1(u8other.oid_str);
 			author = u8other.author;
 			message = utf8ToEucKrAndLatin1(u8other.message);
+			branch = utf8ToEucKrAndLatin1(u8other.branch);
 		}
 	};
 
@@ -273,6 +276,7 @@ private:
 	std::vector<u8DiffResult> u8gitDiff();
 	std::vector<u8DiffResult> u8gitDiffHead();
 	std::vector<u8Commit> u8gitLog();
+	std::vector<u8Commit> u8gitLogAll();
 	void u8gitAdd(std::u8string filePath) { return stagingFiles({ filePath }); };
 	void u8gitCommit(std::u8string message);
 
@@ -353,6 +357,12 @@ public:
 	std::vector<Commit> gitLog()
 	{
 		auto logs_u8 = u8gitLog();
+		return std::vector<Commit>(logs_u8.begin(), logs_u8.end());
+	}
+
+	std::vector<Commit> gitLogAll()
+	{
+		auto logs_u8 = u8gitLogAll();
 		return std::vector<Commit>(logs_u8.begin(), logs_u8.end());
 	}
 

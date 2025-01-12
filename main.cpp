@@ -78,6 +78,15 @@ int main()
 {
     std::cout << "Hello World!\n";
 
+    auto git = new GIT("C:\\Users\\Jinwon\\repo3");
+    auto branchList = git->getAllBranchList();
+    for (auto& branch : branchList)
+        std::cout << branch << std::endl;
+
+    auto commitList = git->gitLog();
+    for (auto& commit : commitList)
+        std::cout << commit.message << std::endl;
+    /*
     std::string fPath = "repoEx\\리포\\한글문서.txt";
     std::fstream file(fPath.c_str());
     bool isOpen = file.is_open();
@@ -96,7 +105,7 @@ int main()
     std::cout << GIT::utf8ToEucKrAndLatin1(contents) << std::endl;
     std::cout << GIT::utf8ToEucKrAndLatin1(contents0) << std::endl;
     
-    return 0;
+    return 0;*/
 };
 /*
 

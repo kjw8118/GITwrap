@@ -821,10 +821,17 @@ std::vector<GIT::u8DiffResult> GIT::u8gitDiffWithCommit(std::u8string filePath, 
 
 std::vector<GIT::u8Commit> GIT::u8gitLog()
 {
+	git_reference* head_ref = nullptr;
+	if (git_repository_head(&head_ref, repo) < GIT_OK)
+		getLastError("Failed to git_repository_head: ");
+
+	const char* branch_name = git_reference_name(head_ref);
+	git_reference_free(head_ref);
+
 	git_revwalk* walker = nullptr;
 	if (git_revwalk_new(&walker, repo) < GIT_OK)
 		getLastError("Failed to git_revwalk_new: ");
-	if (git_revwalk_sorting(walker, GIT_SORT_TIME | GIT_SORT_REVERSE) < GIT_OK)
+	if (git_revwalk_sorting(walker, GIT_SORT_TIME) < GIT_OK)
 		getLastError("Failed to git_revwalk_sorting: ");
 	if (git_revwalk_push_head(walker) < GIT_OK)
 		getLastError("Failed to git_revwalk_push_head: ");
@@ -842,13 +849,60 @@ std::vector<GIT::u8Commit> GIT::u8gitLog()
 		git_oid_tostr(oid_str, sizeof(oid_str), &oid);
 
 		/* store to commit history */
-		commits.emplace_back(oid, UToU8str(oid_str), u8Author(author->name, author->email, author->when), UToU8str(message));
+		commits.emplace_back(oid, UToU8str(oid_str), u8Author(author->name, author->email, author->when), UToU8str(message), UToU8str(branch_name));
 
 		git_commit_free(commit);
 
 	}
-
+	
 	git_revwalk_free(walker);
+
+	return commits;
+
+}
+
+std::vector<GIT::u8Commit> GIT::u8gitLogAll()
+{
+	std::vector<GIT::u8Commit> commits;
+
+	auto branchList = getAllBranchList();
+	for (auto& branch : branchList)
+	{
+		git_revwalk* walker = nullptr;
+		if (git_revwalk_new(&walker, repo) < GIT_OK)
+			getLastError("Failed to git_revwalk_new: ");
+		if (git_revwalk_sorting(walker, GIT_SORT_TIME | GIT_SORT_REVERSE) < GIT_OK)
+			getLastError("Failed to git_revwalk_sorting: ");
+		if (git_revwalk_push_ref(walker, branch.c_str()) < GIT_OK)
+			getLastError("Failed to git_revwalk_push_ref: ");
+		
+		git_oid oid;
+		while (git_revwalk_next(&oid, walker) == GIT_OK)
+		{
+			git_commit* commit = nullptr;
+			if (git_commit_lookup(&commit, repo, &oid) < GIT_OK)
+				getLastError("Failed to git_commit_lookup: ");
+
+			const char* message = git_commit_message(commit);
+			const git_signature* author = git_commit_author(commit);
+			char oid_str[GIT_OID_HEXSZ + 1];
+			git_oid_tostr(oid_str, sizeof(oid_str), &oid);
+
+			/* store to commit history */
+			commits.emplace_back(oid, UToU8str(oid_str), u8Author(author->name, author->email, author->when), UToU8str(message), UstrToU8str(branch));
+
+			git_commit_free(commit);
+
+		}
+
+		git_revwalk_free(walker);
+	}
+
+	std::sort(commits.begin(), commits.end(), [](const Commit& A, const Commit& B) {
+		return A.author.when.time + A.author.when.offset < B.author.when.time + B.author.when.offset;
+		});
+
+	
 
 	return commits;
 
