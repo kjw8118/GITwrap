@@ -385,8 +385,9 @@ GIT::GIT(std::u8string repoPath, std::u8string userName, std::u8string userEmail
 	if (!std::filesystem::is_directory(repoPath_mixed))
 	{
 		std::cout << "Repo Path directory is not exist" << std::endl;
-		if (std::filesystem::create_directory(repoPath_mixed))
-			std::cout << "Create dir: " << repoPath_mixed << std::endl;
+		
+		//if (std::filesystem::create_directory(repoPath_mixed))
+		//	std::cout << "Create dir: " << repoPath_mixed << std::endl;
 	}
 
 	git_libgit2_init();

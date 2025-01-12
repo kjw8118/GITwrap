@@ -78,15 +78,34 @@ int main()
 {
     std::cout << "Hello World!\n";
 
+    std::string fPath = "repoEx\\리포\\한글문서.txt";
+    std::fstream file(fPath.c_str());
+    bool isOpen = file.is_open();
+    std::ostringstream ss;
+    ss << file.rdbuf();
 
 
+    auto git = new GIT("repoEx\\리포\\", "Jinwon", "kjw8118@gmail.com");
+    //git->gitAdd("한글문서.txt");
+    //git->gitCommit("한글 커밋 메시지 입니다.");
+    auto commitList = git->gitLog();
+    for (auto commit : commitList)
+        std::cout << commit.message << std::endl;
+    auto contents = git->gitShowFromCommit("한글문서.txt", commitList.back().oid_str);
+    auto contents0 = ss.str();
+    std::cout << GIT::utf8ToEucKrAndLatin1(contents) << std::endl;
+    std::cout << GIT::utf8ToEucKrAndLatin1(contents0) << std::endl;
+    
+    return 0;
+};
+/*
 
     char mix[] = { 0xc3, 0xbc, 0xED, 0x95, 0x9C, 0xEA, 0xB8, 0x80, 0x20, 0x00 };
     char newMix[] = { 0xFC, 0xC7, 0xD1, 0xB1, 0xDB, 0x00 };
 
     SetConsoleOutputCP(CP_UTF8);
     std::string mix_str(mix);
-    std::cout << mix_str << std::endl;
+    std::cout << mix_str << std::endl;*/
     /*for (unsigned char c : mix_str)
         std::cout << (int)c << ", ";
     std::cout << std::endl;
@@ -105,7 +124,7 @@ int main()
         std::cout << (int)c << ", ";
     std::cout << std::endl;*/
 
-    SetConsoleOutputCP(CP_UTF8);
+    /*SetConsoleOutputCP(CP_UTF8);
     std::string newMix_str(newMix);
     std::cout << newMix_str << std::endl;
     for (unsigned char c : newMix_str)
@@ -149,6 +168,6 @@ int main()
     //git->compare();
     //git->gitLog();
     
-
-}
+    
+}*/
 

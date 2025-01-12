@@ -273,7 +273,7 @@ private:
 	std::vector<u8DiffResult> u8gitDiff();
 	std::vector<u8DiffResult> u8gitDiffHead();
 	std::vector<u8Commit> u8gitLog();
-	void u8gitAdd(std::u8string filePath) { return stagingFiles({ U8strToUstr(filePath) }); };
+	void u8gitAdd(std::u8string filePath) { return stagingFiles({ filePath }); };
 	void u8gitCommit(std::u8string message);
 
 	std::u8string u8gitShowFromCommit(std::u8string filePath, std::u8string commit_id);
@@ -363,8 +363,8 @@ public:
 	void gitPull();
 	void gitPush();
 
-	std::string gitShowFromCommit(std::string filePath_mixed, std::string commit_oid_str_mixed) { return utf8ToEucKrAndLatin1(u8gitShowFromCommit(u8mixedToUtf8(filePath_mixed), u8mixedToUtf8(commit_oid_str_mixed))); };
-	std::string gitShowFromBranch(std::string filePath_mixed, std::string branch_name_mixed) { return utf8ToEucKrAndLatin1(u8gitShowFromBranch(u8mixedToUtf8(filePath_mixed), u8mixedToUtf8(branch_name_mixed))); };
+	std::string gitShowFromCommit(std::string filePath_mixed, std::string commit_oid_str) { return U8strToUstr(u8gitShowFromCommit(u8mixedToUtf8(filePath_mixed), UstrToU8str(commit_oid_str))); };
+	std::string gitShowFromBranch(std::string filePath_mixed, std::string branch_name_mixed) { return U8strToUstr(u8gitShowFromBranch(u8mixedToUtf8(filePath_mixed), u8mixedToUtf8(branch_name_mixed))); };
 
 
 
