@@ -1,3 +1,5 @@
+#include "pch.h"
+
 #include "GIT.h"
 
 #include <filesystem>

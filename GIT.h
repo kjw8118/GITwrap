@@ -1,4 +1,5 @@
 #pragma once
+#include "GITwrapExport.h"
 
 #include <git2.h>
 
@@ -28,7 +29,7 @@
 #define UstrToU8str(str) (std::u8string(reinterpret_cast<const char8_t*>(str.c_str())))
 #define UToU8str(str) (std::u8string(reinterpret_cast<const char8_t*>(str)))
 
-class GIT
+class GITWRAP_API GIT
 {
 private:
 
